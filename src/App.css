@@ -51,3 +51,60 @@
     transform: rotate(360deg);
   }
 }
+
+.map-container-wrapper {
+  display: flex;
+  height: 100vh;
+}
+
+.bus-info-panel {
+  width: 300px;
+  background: #f8f9fa;
+  padding: 20px;
+  overflow-y: auto;
+  border-right: 2px solid #ddd;
+}
+
+.bus-info-panel h2 {
+  margin-top: 0;
+  font-size: 18px;
+  text-align: center;
+}
+
+.bus-info {
+  background: white;
+  padding: 10px;
+  margin: 10px 0;
+  border-radius: 8px;
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease-in-out;
+}
+
+.bus-info:hover {
+  transform: scale(1.05);
+}
+
+.map-container {
+  flex-grow: 1;
+  height: 100%;
+}
+
+
+.home-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: #f5f5f5;
+}
+
+.home-header {
+  background-color: #007BFF;
+  color: white;
+  padding: 1rem;
+  text-align: center;
+}
+
+.map-section {
+  flex: 1;
+  padding: 1rem;
+}
