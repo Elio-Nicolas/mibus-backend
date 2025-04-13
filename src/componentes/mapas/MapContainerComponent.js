@@ -4,6 +4,7 @@ import L from "leaflet";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
 import markerShadow from "leaflet/dist/images/marker-shadow.png";
 
+
 // Icono personalizado para los buses y el usuario
 const customIcon = new L.Icon({
   iconUrl: markerIcon,
@@ -31,6 +32,9 @@ const SetViewToLocation = ({ position }) => {
 const MapContainerComponent = () => {
   const [buses, setBuses] = useState([]);
   const [userPosition, setUserPosition] = useState(DEFAULT_POSITION);
+  const username = localStorage.getItem("username");
+
+
 
   // Obtener la ubicación del usuario
   useEffect(() => {
@@ -86,6 +90,9 @@ const MapContainerComponent = () => {
             </div>
           ))
         )}
+        <div className="user-info">
+          <h3>👤 Usuario: {username || "Desconocido"}</h3>
+        </div>
       </div>
 
       {/* Mapa */}
@@ -98,7 +105,7 @@ const MapContainerComponent = () => {
 
         {/* 📌 Marcador del usuario */}
         <Marker position={userPosition} icon={customIcon}>
-          <Popup>📍 Estás aquí</Popup>
+          <Popup><strong>📍 Usuario:</strong> {username}</Popup>
         </Marker>
 
         {/* 🚌 Marcadores de los buses */}

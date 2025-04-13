@@ -47,7 +47,7 @@ router.post("/signin", async (req, res) => {
       expiresIn: "1h",
     });
 
-    res.json({ token });
+    res.json({ token, username: user.username });
   } catch (err) {
     console.error("❌ Error al iniciar sesión:", err);
     res.status(500).json({ error: "Error en el servidor" });

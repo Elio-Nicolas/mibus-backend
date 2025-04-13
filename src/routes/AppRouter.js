@@ -20,6 +20,7 @@ const AppRouter = () => {
       <Route path="/" element={<Portada />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<SignUp />} />
+
       {/* Ruta protegida: solo accedés si estás logueado */}
       <Route 
         path="/mapa" 

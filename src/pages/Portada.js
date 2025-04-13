@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import "./Portada.css"; // Estilos separados para más claridad
-import busImage from "../assets/image.png"; // Asegurate de tener esta imagen
+import busImage from "../assets/image.png"; // 
 
 const Portada = () => {
   return (

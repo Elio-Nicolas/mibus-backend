@@ -32,12 +32,17 @@ const Login = () => {
         // Guardar token
         if (remember) {
           localStorage.setItem("token", data.token);
+          localStorage.setItem("username", data.username);
+
+         // alert("✅ Bienvenido " + data.username);
+         // navigate("/mapa");
         } else {
           sessionStorage.setItem("token", data.token);
+          sessionStorage.setItem("username", data.username);
         }
 
         alert("✅ Inicio de sesión exitoso");
-        navigate("/home");
+        navigate("/mapa");
       } else {
         alert("❌ Error: " + data.error);
       }
