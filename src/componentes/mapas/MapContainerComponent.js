@@ -32,7 +32,9 @@ const SetViewToLocation = ({ position }) => {
 const MapContainerComponent = () => {
   const [buses, setBuses] = useState([]);
   const [userPosition, setUserPosition] = useState(DEFAULT_POSITION);
-  const username = localStorage.getItem("username");
+  const username =
+  localStorage.getItem("username") || sessionStorage.getItem("username");
+
 
 
 

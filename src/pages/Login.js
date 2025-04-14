@@ -24,11 +24,13 @@ const Login = () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
+        username: form.username // si o si por que no me traia el nombre del usuario
       });
 
       const data = await res.json();
-
+      console.log("Respuesta del backend:", data); // 👀
       if (res.ok) {
+        alert(`✅ Usuario encontrado: ${data.username}`);
         // Guardar token
         if (remember) {
           localStorage.setItem("token", data.token);

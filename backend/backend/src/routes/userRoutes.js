@@ -32,6 +32,9 @@ router.post("/signup", async (req, res) => {
 // 🔑 Login y generación de token
 router.post("/signin", async (req, res) => {
   const { username, password } = req.body;
+ 
+
+  console.log("Datos recibidos:", { username, password }); // Verifica que los datos del formulario están llegando correctamente
 
   try {
     // Buscar al usuario
