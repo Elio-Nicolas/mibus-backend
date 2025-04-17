@@ -3,10 +3,18 @@ const http = require("http");
 const socketIo = require("socket.io");
 const mongoose = require("mongoose");
 const cors = require("cors");
-
 const app = express();
+const path = require("path");
+
+
+app.use("/uploads", express.static(path.join(__dirname, "uploads"))); //acceso a img desde el navegador
+
 app.use(cors({ origin: "http://localhost:4000" })); // ✅ CORS bien aplicado
-app.use(express.json()); // ✅ Parsear JSON
+
+app.use(express.json()); //  Parsear JSON
+
+app.use('/uploads', express.static('uploads'));
+
 
 const server = http.createServer(app);
 const io = socketIo(server, {
@@ -14,8 +22,8 @@ const io = socketIo(server, {
 });
 
 
-const userRoutes = require("./routes/userRoutes"); // 👈 importar
-app.use("/api/users", userRoutes);                 // 👈 usar
+const userRoutes = require("./routes/userRoutes"); //  importar
+app.use("/api/users", userRoutes);                 //  usar
 
 // 🔌 Conexión MongoDB
 mongoose.connect("mongodb://localhost:27017/colectivos", {
@@ -43,13 +51,13 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", () => console.log("❌ Cliente desconectado"));
 });
-
+/*
 // 🔁 Emitir datos cada 3 segundos
 setInterval(async () => {
   const buses = await Bus.find({});
   io.emit("busUpdate", buses);
   console.log("🔄 Enviando datos a los clientes:", buses);
-}, 3000);
+}, 3000);*/
 
 // 🚏 Ruta REST única
 app.get("/buses", async (req, res) => {

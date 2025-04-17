@@ -63,13 +63,17 @@
   padding: 20px;
   overflow-y: auto;
   border-right: 2px solid #ddd;
+  min-height: 100vh;
 }
 
 .bus-info-panel h2 {
   margin-top: 0;
   font-size: 18px;
   text-align: center;
+  
 }
+
+
 
 .bus-info {
   background: white;
@@ -107,4 +111,14 @@
 .map-section {
   flex: 1;
   padding: 1rem;
+}
+
+.user-info {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.user-info img {
+  margin-top: 10px;
+  border: 2px solid #007BFF;
 }

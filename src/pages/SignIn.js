@@ -39,6 +39,7 @@ const SignIn = () => {
 
       if (res.ok) {
         localStorage.setItem("token", data.token); // Guardamos el token
+        localStorage.setItem("user", JSON.stringify(data.user));
         alert("✅ Usuario registrado correctamente");
         navigate("/mapa"); // Redirigir a ruta protegida
       } else {

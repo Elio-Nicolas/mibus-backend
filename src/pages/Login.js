@@ -28,19 +28,22 @@ const Login = () => {
       });
 
       const data = await res.json();
-      console.log("Respuesta del backend:", data); // 👀
+      console.log("🔍 Data recibida:", data);
+
       if (res.ok) {
         alert(`✅ Usuario encontrado: ${data.username}`);
         // Guardar token
         if (remember) {
           localStorage.setItem("token", data.token);
           localStorage.setItem("username", data.username);
+          localStorage.setItem("image", data.image); 
 
          // alert("✅ Bienvenido " + data.username);
          // navigate("/mapa");
         } else {
           sessionStorage.setItem("token", data.token);
           sessionStorage.setItem("username", data.username);
+          sessionStorage.setItem("image", data.image);
         }
 
         alert("✅ Inicio de sesión exitoso");

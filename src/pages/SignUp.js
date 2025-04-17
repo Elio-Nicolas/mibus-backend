@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "./SignIn.css";
-
 import googleIcon from "../assets/Google.png";
 import facebookIcon from "../assets/Facebook.png";
 import imageIcon from "../assets/image.png";
@@ -11,6 +10,7 @@ const SignUp = () => {
     username: "",
     password: "",
   });
+  const [image, setImage] = useState(null);
 
   const navigate = useNavigate();
 
@@ -21,20 +21,28 @@ const SignUp = () => {
     }));
   };
 
+  const handleImageChange = (e) => {
+    setImage(e.target.files[0]);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
+
+    const formPayload = new FormData();
+    formPayload.append("username", formData.username);
+    formPayload.append("password", formData.password);
+    if (image) {
+      formPayload.append("image", image);
+    }
+
     try {
       const res = await fetch("http://localhost:3001/api/users/signup", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
+        body: formPayload,
       });
-  
+
       const data = await res.json();
-  
+
       if (res.ok) {
         alert("✅ Usuario registrado");
         navigate("/signin");
@@ -57,7 +65,7 @@ const SignUp = () => {
 
       <img src={imageIcon} alt="Bus" className="signup-image" />
 
-      <form onSubmit={handleSubmit} className="signup-form">
+      <form onSubmit={handleSubmit} className="signup-form" encType="multipart/form-data">
         <div className="input-group">
           <input
             type="text"
@@ -79,6 +87,16 @@ const SignUp = () => {
             onChange={handleChange}
             className="signup-input"
             required
+          />
+        </div>
+
+        <div className="input-group">
+          <input
+            type="file"
+            accept="image/*"
+            capture="user"
+            onChange={handleImageChange}
+            className="signup-input"
           />
         </div>
 

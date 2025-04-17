@@ -3,10 +3,31 @@ const router = express.Router();
 const User = require("../models/User");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
+const multer = require("multer");
+const path = require("path");
+
+// Configuración del almacenamiento con multer
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "uploads/"); // Carpeta donde se guardan las imágenes
+  },
+  filename: function (req, file, cb) {
+    const uniqueName = Date.now() + path.extname(file.originalname); // nombre único
+    cb(null, uniqueName);
+  },
+});
+
+const upload = multer({ storage });
 
 // 🔐 Registrar nuevo usuario
-router.post("/signup", async (req, res) => {
+router.post("/signup", upload.single("image"), async (req, res) => {
   const { username, password } = req.body;
+  const imagePath = req.file ? req.file.filename : null;
+
+  console.log("🧾 Datos recibidos:");
+  console.log("Username:", username);
+  console.log("Password:", password);
+  console.log("Imagen:", req.file); // <--- VER ESTO
 
   try {
     // Verificar si ya existe el usuario
@@ -19,7 +40,7 @@ router.post("/signup", async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Crear nuevo usuario
-    const newUser = new User({ username, password: hashedPassword });
+    const newUser = new User({ username, password: hashedPassword, image: imagePath, });
     await newUser.save();
 
     res.status(201).json({ message: "Usuario creado correctamente" });
@@ -31,10 +52,10 @@ router.post("/signup", async (req, res) => {
 
 // 🔑 Login y generación de token
 router.post("/signin", async (req, res) => {
-  const { username, password } = req.body;
+  const { username, password, image } = req.body;
  
 
-  console.log("Datos recibidos:", { username, password }); // Verifica que los datos del formulario están llegando correctamente
+  console.log("Datos recibidos:", { username, password, image}); // Verifica que los datos del formulario están llegando correctamente
 
   try {
     // Buscar al usuario
@@ -50,7 +71,7 @@ router.post("/signin", async (req, res) => {
       expiresIn: "1h",
     });
 
-    res.json({ token, username: user.username });
+    res.json({ token, username: user.username, image: user.image });
   } catch (err) {
     console.error("❌ Error al iniciar sesión:", err);
     res.status(500).json({ error: "Error en el servidor" });

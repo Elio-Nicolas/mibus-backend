@@ -4,6 +4,9 @@ import L from "leaflet";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
 import markerShadow from "leaflet/dist/images/marker-shadow.png";
 
+const userData = localStorage.getItem("user");
+const user = userData ? JSON.parse(userData) : null;
+
 
 // Icono personalizado para los buses y el usuario
 const customIcon = new L.Icon({
@@ -34,9 +37,10 @@ const MapContainerComponent = () => {
   const [userPosition, setUserPosition] = useState(DEFAULT_POSITION);
   const username =
   localStorage.getItem("username") || sessionStorage.getItem("username");
+  localStorage.getItem("user")
+  const image = localStorage.getItem("image") || sessionStorage.getItem("image");
 
-
-
+  console.log(localStorage.getItem("image"))
 
   // Obtener la ubicación del usuario
   useEffect(() => {
@@ -68,13 +72,14 @@ const MapContainerComponent = () => {
       console.error("Error obteniendo buses:", error);
     }
   };
-
+/*
   // Llamar a la API cada 3 segundos
   useEffect(() => {
     fetchBuses();
-    const interval = setInterval(fetchBuses, 3000);
+    const interval = setInterval(fetchBuses, 3000);  //refresco cada 3 seg.
     return () => clearInterval(interval);
-  }, []);
+  }, []);*/
+
 
   return (
     <div className="map-container-wrapper">
@@ -93,10 +98,19 @@ const MapContainerComponent = () => {
           ))
         )}
         <div className="user-info">
-          <h3>👤 Usuario: {username || "Desconocido"}</h3>
-        </div>
-      </div>
+         <h3>👤 Usuario: {username || "Desconocido"}</h3>
+         {image && (
+  <img
+    alt="Foto de perfil"
+    src={`http://localhost:3001/uploads/${image}`}
+    style={{ width: "100px", borderRadius: "50%" }}
+  />
+)}
 
+        </div>
+         </div>
+
+  
       {/* Mapa */}
       <MapContainer center={userPosition} zoom={13} className="map-container">
         <SetViewToLocation position={userPosition} />
@@ -106,9 +120,10 @@ const MapContainerComponent = () => {
         />
 
         {/* 📌 Marcador del usuario */}
-        <Marker position={userPosition} icon={customIcon}>
-          <Popup><strong>📍 Usuario:</strong> {username}</Popup>
+        <Marker position={userPosition} icon={customIcon}>  
+          <Popup><strong>📍 Usuario:</strong> {username}</Popup> 
         </Marker>
+
 
         {/* 🚌 Marcadores de los buses */}
         {buses.map((bus) => (
