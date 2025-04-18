@@ -7,6 +7,7 @@ import Home from "../pages/Home";
 import Portada from "../pages/Portada";
 import SignUp from "../pages/SignUp";
 import MapContainerComponent from "../componentes/mapas/MapContainerComponent";
+import { MapContainer } from "react-leaflet";
 
 // Ruta protegida: solo deja pasar si está autenticado
 const ProtectedRoute = ({ children }) => {
@@ -20,9 +21,9 @@ const AppRouter = () => {
       <Route path="/" element={<Portada />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<SignUp />} />
-
+      <Route path="/mapa" element={<MapContainerComponent />} />
       {/* Ruta protegida: solo accedés si estás logueado */}
-      <Route 
+      {/*<Route 
         path="/mapa" 
         element={
           <ProtectedRoute>
