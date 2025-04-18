@@ -1,5 +1,5 @@
 
-import React from "react";
+//import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import Login from "../pages/Logins";
 //import Signup from "../pages/Signup";
@@ -9,10 +9,31 @@ import SignUp from "../pages/SignUp";
 import MapContainerComponent from "../componentes/mapas/MapContainerComponent";
 import { MapContainer } from "react-leaflet";
 
+import React, { useState, useEffect } from 'react';
+
+
 // Ruta protegida: solo deja pasar si está autenticado
 const ProtectedRoute = ({ children }) => {
-  const isAuth = localStorage.getItem("auth") === "true";
-  return isAuth ? children : <Navigate to="/login" />;
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    const username = localStorage.getItem("username") || sessionStorage.getItem("username");
+    if (username) {
+      setIsAuthenticated(true);
+    }
+    setCheckingAuth(false);
+  }, []);
+
+  if (checkingAuth) {
+    return <div>Cargando...</div>; // o un spinner
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
 };
 
 const AppRouter = () => {
@@ -21,7 +42,7 @@ const AppRouter = () => {
       <Route path="/" element={<Portada />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<SignUp />} />
-      <Route path="/mapa" element={<MapContainerComponent />} />
+     {/* <Route path="/mapa" element={<MapContainerComponent />} />
       {/* Ruta protegida: solo accedés si estás logueado */}
       <Route 
         path="/mapa" 
