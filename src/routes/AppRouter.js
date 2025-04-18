@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
-import Login from "../pages/Login";
+import Login from "../pages/Logins";
 //import Signup from "../pages/Signup";
 import Home from "../pages/Home";
 import Portada from "../pages/Portada";
@@ -23,7 +23,7 @@ const AppRouter = () => {
       <Route path="/signup" element={<SignUp />} />
       <Route path="/mapa" element={<MapContainerComponent />} />
       {/* Ruta protegida: solo accedés si estás logueado */}
-      {/*<Route 
+      <Route 
         path="/mapa" 
         element={
           <ProtectedRoute>
@@ -33,7 +33,7 @@ const AppRouter = () => {
       />
 
       {/* Redirigir por defecto */}
-      <Route path="*" element={<Navigate to="/login" />} />
+      <Route path="*" element={<Navigate to="/signup" />} />
     </Routes>
   );
 };

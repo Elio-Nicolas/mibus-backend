@@ -48,10 +48,8 @@ const MapContainerComponent = () => {
   const [userPosition, setUserPosition] = useState(DEFAULT_POSITION);
   const [openDrawer, setOpenDrawer] = useState(false);
 
-  const username =
-    localStorage.getItem("username") || sessionStorage.getItem("username");
-  const image =
-    localStorage.getItem("image") || sessionStorage.getItem("image");
+  const username = localStorage.getItem("username") || sessionStorage.getItem("username");
+  const image = localStorage.getItem("image") || sessionStorage.getItem("image");
 
   useEffect(() => {
     if ("geolocation" in navigator) {
@@ -107,9 +105,6 @@ const MapContainerComponent = () => {
 >
   <MenuIcon fontSize="large" />
 </IconButton>
-
-
-
       {/* Drawer lateral */}
       <Drawer anchor="left" open={openDrawer} onClose={() => setOpenDrawer(false)}>
         <div style={{ width: 300, padding: 16 }}>
