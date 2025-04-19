@@ -42,7 +42,8 @@ const AppRouter = () => {
       <Route path="/" element={<Portada />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<SignUp />} />
-     {/* <Route path="/mapa" element={<MapContainerComponent />} />
+      <Route path="/home" element={<Home/>}/>
+      
       {/* Ruta protegida: solo accedés si estás logueado */}
       <Route 
         path="/mapa" 

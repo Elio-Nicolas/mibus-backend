@@ -46,7 +46,7 @@ const Login = () => {
           sessionStorage.setItem("image", data.image);
         }
 
-        alert("✅ Inicio de sesión exitoso");
+        //alert("✅ Inicio de sesión exitoso");
         navigate("/mapa");
       } else {
         alert("❌ Error: " + data.error);
@@ -101,6 +101,16 @@ const Login = () => {
         <button type="submit" className="btn-login">
           CONTINUAR
         </button>
+
+         {/* BOTÓN PARA IR A SIGNIN */}
+        <button
+         type="button"
+         className="btn-sigin"
+         onClick={() => navigate("/signin")}
+        >
+         CREAR CUENTA
+        </button>
+
       </form>
     </div>
   );

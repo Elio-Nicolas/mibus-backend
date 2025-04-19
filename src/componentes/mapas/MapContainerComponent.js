@@ -20,6 +20,8 @@ import {
 import MenuIcon from "@mui/icons-material/Menu";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
 import markerShadow from "leaflet/dist/images/marker-shadow.png";
+import { Box } from "@mui/material";
+
 
 // Icono personalizado
 const customIcon = new L.Icon({
@@ -47,6 +49,8 @@ const MapContainerComponent = () => {
   const [buses, setBuses] = useState([]);
   const [userPosition, setUserPosition] = useState(DEFAULT_POSITION);
   const [openDrawer, setOpenDrawer] = useState(false);
+  const [openLineasDrawer, setOpenLineasDrawer] = useState(false);
+
 
   const username = localStorage.getItem("username") || sessionStorage.getItem("username");
   const image = localStorage.getItem("image") || sessionStorage.getItem("image");
@@ -85,70 +89,158 @@ const MapContainerComponent = () => {
   const handleLogout = () => {
     localStorage.clear();
     sessionStorage.clear();
-    window.location.href = "/login";
+    window.location.href = "/";
   };
 
   return (
     <div style={{ position: "relative", height: "100vh" }}>
       {/* Botón para abrir el sidebar */}
       <IconButton
-  onClick={() => setOpenDrawer(true)}
-  style={{
-    position: "absolute",
-    top: 20,         // bajamos un poco más para evitar el control de zoom
-    right: 10,       // lo mandamos al margen derecho
-    zIndex: 1000,
-    backgroundColor: "white",
-    border: "1px solid #ccc",
-    boxShadow: "0 2px 4px rgba(0,0,0,0.3)",
+        onClick={() => setOpenDrawer(true)}
+        style={{
+          position: "absolute",
+          top: 20,
+          right: 10,
+          zIndex: 1000,
+          backgroundColor: "white",
+          border: "1px solid #ccc",
+          boxShadow: "0 2px 4px rgba(0,0,0,0.3)",
+        }}
+      >
+        <MenuIcon fontSize="large" />
+      </IconButton>
+
+      {/* Drawer lateral */}
+      <Drawer
+  anchor="left"
+  open={openDrawer}
+  onClose={() => setOpenDrawer(false)}
+  PaperProps={{
+    elevation: 0,
+    sx: {
+      backgroundColor: 'rgba(169, 213, 238, 0.8)',
+      boxShadow: "none",
+    },
+  }}
+  ModalProps={{
+    BackdropProps: {
+      invisible: true,
+    },
   }}
 >
-  <MenuIcon fontSize="large" />
-</IconButton>
-      {/* Drawer lateral */}
-      <Drawer anchor="left" open={openDrawer} onClose={() => setOpenDrawer(false)}>
-        <div style={{ width: 300, padding: 16 }}>
-          <Typography variant="h6">🚌 Buses en tiempo real</Typography>
-          <List>
-            {buses.length === 0 ? (
-              <ListItem>
-                <ListItemText primary="No hay buses disponibles" />
-              </ListItem>
-            ) : (
-              buses.map((bus) => (
-                <ListItem key={bus._id}>
-                  <ListItemText
-                    primary={`🚌 ${bus.nombre || "Bus"}`}
-                    secondary={`📍 ${bus.lat.toFixed(4)}, ${bus.lon.toFixed(4)} ⏰ ${new Date(bus.timestamp).toLocaleTimeString()}`}
-                  />
-                </ListItem>
-              ))
-            )}
-          </List>
+  <div style={{ width: 250, padding: 16 }}>
+    <Typography variant="h6">🚌 Buses en tiempo real</Typography>
+    <List>
+      {buses.length === 0 ? (
+        <ListItem>
+          <ListItemText primary="No hay buses disponibles" />
+        </ListItem>
+      ) : (
+        buses.map((bus) => (
+          <ListItem key={bus._id}>
+            <ListItemText
+              primary={`🚌 ${bus.nombre || "Bus"}`}
+              secondary={`📍 ${bus.lat.toFixed(4)}, ${bus.lon.toFixed(4)} ⏰ ${new Date(bus.timestamp).toLocaleTimeString()}`}
+            />
+          </ListItem>
+        ))
+      )}
+    </List>
 
-          {/* Usuario */}
-          <div style={{ marginTop: 20, textAlign: "center" }}>
-            {image && (
-              <Avatar
-                alt="Perfil"
-                src={`http://localhost:3001/uploads/${image}`}
-                sx={{ width: 80, height: 80, margin: "0 auto" }}
-              />
-            )}
-            <Typography variant="subtitle1" style={{ marginTop: 10 }}>
-              Usuario: {username || "Desconocido"}
-            </Typography>
-            <Button
-              variant="contained"
-              color="secondary"
-              onClick={handleLogout}
-              style={{ marginTop: 15 }}
-            >
-              Cerrar sesión
-            </Button>
-          </div>
-        </div>
-      </Drawer>
+    <div style={{ marginTop: 20, textAlign: "center" }}>
+      {image && (
+        <Avatar
+          alt="Perfil"
+          src={`http://localhost:3001/uploads/${image}`}
+          sx={{ width: 80, height: 80, margin: "0 auto" }}
+        />
+      )}
+      <Typography variant="subtitle1" style={{ marginTop: 10 }}>
+        Usuario: {username || "Desconocido"}
+      </Typography>
+
+      <Button
+        variant="contained"
+        color="primary"
+        onClick={() => setOpenLineasDrawer(true)}
+        style={{ marginTop: 15, width: '100%' }}
+      >
+        LINEAS
+      </Button>
+      <Button variant="contained" color="primary" style={{ marginTop: 10, width: '100%' }}>
+        SALDO
+      </Button>
+      <Button variant="contained" color="primary" style={{ marginTop: 10, width: '100%' }}>
+        RECARGA
+      </Button>
+      <Button variant="contained" color="primary" style={{ marginTop: 10, width: '100%' }}>
+        CLIMA
+      </Button>
+
+      <Button
+        variant="contained"
+        color="secondary"
+        onClick={handleLogout}
+        style={{ marginTop: 15, width: '100%' }}
+      >
+        Cerrar sesión
+      </Button>
+    </div>
+  </div>
+</Drawer>
+
+<Drawer
+  anchor="bottom"
+  open={openLineasDrawer}
+  onClose={() => setOpenLineasDrawer(false)}
+  PaperProps={{
+    sx: {
+      height: 180,
+      backgroundColor: "transparent",
+      padding: 2,
+      pl: '200px', // Igual al ancho del drawer izquierdo
+      //pr: 2,        // Padding derecho
+      boxSizing: 'border-box',
+    },
+  }}
+>
+  <Typography variant="h6" sx={{ mb: 1, textAlign: "center" }}>
+    🗺️ Líneas disponibles
+  </Typography>
+  <Box
+    sx={{
+      display: 'flex',
+      justifyContent: 'center', // <--- Mueve los botones hacia la derecha
+      gap: 2,
+      padding: 1,
+      marginRight: '16px', // <--- Ajustá este valor para moverlos más o menos
+    }}
+
+
+  >
+    {["A", "E", "Z E", "Z O"].map((linea) => (
+      <Button
+        key={linea}
+        variant="contained"
+        //backgroundColor= "yellow"
+        sx={{
+          borderRadius: "50%",
+          width: 70,
+          height: 70,
+          fontSize: 12,
+          background: "green",
+          opacity: 0.5,
+          textAlign: 'center',
+        }}
+      >
+        {linea}
+      </Button>
+    ))}
+  </Box>
+</Drawer>
+
+
+
 
       {/* Mapa */}
       <MapContainer center={userPosition} zoom={13} style={{ height: "100%" }}>
