@@ -71,11 +71,81 @@ router.post("/signin", async (req, res) => {
       expiresIn: "1h",
     });
 
-    res.json({ token, username: user.username, image: user.image });
+   res.json({
+    token,
+    userId: user._id,     // ✅ agregado para que el front sepa quién es el usuario
+    username: user.username,
+    image: user.image
+   });
+
   } catch (err) {
     console.error("❌ Error al iniciar sesión:", err);
     res.status(500).json({ error: "Error en el servidor" });
   }
 });
+
+// end point para cambio de perfil
+
+// ✅ Actualizar perfil (nombre + imagen)
+router.put("/upload/:id", upload.single("image"), async (req, res) => {
+  const { username } = req.body; // nuevo nombre
+  const imagePath = req.file ? req.file.filename : undefined;
+
+  try {
+  
+    const updates = {};
+    if (username) updates.username = username;
+    if (imagePath) updates.image = imagePath;
+
+    const updatedUser = await User.findByIdAndUpdate(req.params.id, updates, {
+      new: true,
+    });
+
+    if (!updatedUser)
+      return res.status(404).json({ error: "Usuario no encontrado" });
+
+    res.json({
+      message: "Perfil actualizado correctamente",
+      user: updatedUser,
+    });
+  } catch (err) {
+    console.error("❌ Error al actualizar perfil:", err);
+    res.status(500).json({ error: "Error en el servidor" });
+  }
+});
+
+/*
+// 🖼️ Subir o actualizar imagen de perfil
+router.post("/upload-avatar", upload.single("image"), async (req, res) => {
+  try {
+    const { userId } = req.body;
+    const imagePath = req.file ? req.file.filename : null;
+
+    if (!userId) {
+      return res.status(400).json({ error: "Falta el ID de usuario" });
+    }
+
+    if (!imagePath) {
+      return res.status(400).json({ error: "No se recibió ninguna imagen" });
+    }
+
+    // Buscar usuario y actualizar su imagen
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { image: imagePath },
+      { new: true } // devuelve el documento actualizado
+    );
+
+    if (!user) {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
+
+    res.json({ message: "Imagen actualizada correctamente", filename: imagePath });
+  } catch (error) {
+    console.error("❌ Error subiendo imagen:", error);
+    res.status(500).json({ error: "Error al subir imagen" });
+  }
+});
+*/
 
 module.exports = router;

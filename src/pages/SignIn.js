@@ -24,7 +24,7 @@ const SignIn = () => {
     }
 
     try {
-      const res = await fetch("http://localhost:3001/api/users/signup", {
+      const res = await fetch("http://localhost:4001/api/users/signup", { //se cambio de 3001 a 4001
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -40,6 +40,7 @@ const SignIn = () => {
       if (res.ok) {
         localStorage.setItem("token", data.token); // Guardamos el token
         localStorage.setItem("user", JSON.stringify(data.user));
+        localStorage.setItem("userId", data.userId);
         alert("✅ Usuario registrado correctamente");
         navigate("/mapa"); // Redirigir a ruta protegida
       } else {

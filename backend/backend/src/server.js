@@ -71,8 +71,8 @@ app.get("/buses", async (req, res) => {
 });
 
 // 🚀 Escuchar en puerto 3001
-server.listen(3001, () =>
-  console.log("🚀 Backend corriendo en http://localhost:3001")
+server.listen(4001, () =>
+  console.log("🚀 Backend corriendo en http://localhost:4001")
 );
 
 

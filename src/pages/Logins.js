@@ -19,7 +19,7 @@ const Login = () => {
     e.preventDefault();
 
     try {
-      const res = await fetch("http://localhost:3001/api/users/signin", {
+      const res = await fetch("http://localhost:4001/api/users/signin", { // se cambio de 3001 a 4001
 
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -37,6 +37,7 @@ const Login = () => {
           localStorage.setItem("token", data.token);
           localStorage.setItem("username", data.username);
           localStorage.setItem("image", data.image); 
+          localStorage.setItem("userId", data.userId);
 
          // alert("✅ Bienvenido " + data.username);
          // navigate("/mapa");
@@ -44,6 +45,7 @@ const Login = () => {
           sessionStorage.setItem("token", data.token);
           sessionStorage.setItem("username", data.username);
           sessionStorage.setItem("image", data.image);
+          sessionStorage.setItem("userId", data.userId); 
         }
 
         //alert("✅ Inicio de sesión exitoso");

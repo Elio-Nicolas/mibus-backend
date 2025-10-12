@@ -36,7 +36,7 @@ const SignUp = () => {
     }
 
     try {
-      const res = await fetch("http://localhost:3001/api/users/signup", {
+      const res = await fetch("http://localhost:4001/api/users/signup", { // se cambio de 3001 a 4001
         method: "POST",
         body: formPayload,
       });
