@@ -6,7 +6,6 @@ import io from "socket.io-client";
 import { io } from "socket.io-client";
 const socket = io("http://localhost:3001"); // Conectamos con el backend
 
-
 const getLocation = (setPosition) => {
   if (navigator.geolocation) {
     navigator.geolocation.watchPosition(

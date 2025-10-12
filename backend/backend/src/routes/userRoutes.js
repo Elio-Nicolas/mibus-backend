@@ -19,7 +19,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-// 🔐 Registrar nuevo usuario
+// Registrar nuevo usuario
 router.post("/signup", upload.single("image"), async (req, res) => {
   const { username, password } = req.body;
   const imagePath = req.file ? req.file.filename : null;
@@ -27,7 +27,7 @@ router.post("/signup", upload.single("image"), async (req, res) => {
   console.log("🧾 Datos recibidos:");
   console.log("Username:", username);
   console.log("Password:", password);
-  console.log("Imagen:", req.file); // <--- VER ESTO
+  console.log("Imagen:", req.file); // <--- VER ESTO!! ELIO
 
   try {
     // Verificar si ya existe el usuario
@@ -50,7 +50,7 @@ router.post("/signup", upload.single("image"), async (req, res) => {
   }
 });
 
-// 🔑 Login y generación de token
+// Login y generación de token
 router.post("/signin", async (req, res) => {
   const { username, password, image } = req.body;
  
@@ -73,7 +73,7 @@ router.post("/signin", async (req, res) => {
 
    res.json({
     token,
-    userId: user._id,     // ✅ agregado para que el front sepa quién es el usuario
+    userId: user._id,     // para que el front sepa quién es el usuario
     username: user.username,
     image: user.image
    });
@@ -86,7 +86,7 @@ router.post("/signin", async (req, res) => {
 
 // end point para cambio de perfil
 
-// ✅ Actualizar perfil (nombre + imagen)
+//  Actualizar perfil (nombre + imagen)
 router.put("/upload/:id", upload.single("image"), async (req, res) => {
   const { username } = req.body; // nuevo nombre
   const imagePath = req.file ? req.file.filename : undefined;
@@ -113,39 +113,5 @@ router.put("/upload/:id", upload.single("image"), async (req, res) => {
     res.status(500).json({ error: "Error en el servidor" });
   }
 });
-
-/*
-// 🖼️ Subir o actualizar imagen de perfil
-router.post("/upload-avatar", upload.single("image"), async (req, res) => {
-  try {
-    const { userId } = req.body;
-    const imagePath = req.file ? req.file.filename : null;
-
-    if (!userId) {
-      return res.status(400).json({ error: "Falta el ID de usuario" });
-    }
-
-    if (!imagePath) {
-      return res.status(400).json({ error: "No se recibió ninguna imagen" });
-    }
-
-    // Buscar usuario y actualizar su imagen
-    const user = await User.findByIdAndUpdate(
-      userId,
-      { image: imagePath },
-      { new: true } // devuelve el documento actualizado
-    );
-
-    if (!user) {
-      return res.status(404).json({ error: "Usuario no encontrado" });
-    }
-
-    res.json({ message: "Imagen actualizada correctamente", filename: imagePath });
-  } catch (error) {
-    console.error("❌ Error subiendo imagen:", error);
-    res.status(500).json({ error: "Error al subir imagen" });
-  }
-});
-*/
 
 module.exports = router;

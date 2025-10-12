@@ -9,7 +9,7 @@ const path = require("path");
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads"))); //acceso a img desde el navegador
 
-app.use(cors({ origin: "http://localhost:4000" })); // ✅ CORS bien aplicado
+app.use(cors({ origin: "http://localhost:4000" })); // Solo permite el acceso del FRONT
 
 app.use(express.json()); //  Parsear JSON
 
@@ -25,13 +25,13 @@ const io = socketIo(server, {
 const userRoutes = require("./routes/userRoutes"); //  importar
 app.use("/api/users", userRoutes);                 //  usar
 
-// 🔌 Conexión MongoDB
+// Conexión MongoDB
 mongoose.connect("mongodb://localhost:27017/colectivos", {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
 
-// 🚌 Esquema y modelo
+// Esquema y modelo
 const BusSchema = new mongoose.Schema({
   id: String,
   lat: Number,
@@ -40,7 +40,7 @@ const BusSchema = new mongoose.Schema({
 });
 const Bus = mongoose.model("Bus", BusSchema);
 
-// 📡 WebSocket
+// WebSocket
 io.on("connection", (socket) => {
   console.log("✅ Cliente conectado");
 
@@ -59,7 +59,7 @@ setInterval(async () => {
   console.log("🔄 Enviando datos a los clientes:", buses);
 }, 3000);*/
 
-// 🚏 Ruta REST única
+// Ruta REST única
 app.get("/buses", async (req, res) => {
   try {
     const buses = await Bus.find({});
@@ -70,7 +70,7 @@ app.get("/buses", async (req, res) => {
   }
 });
 
-// 🚀 Escuchar en puerto 3001
+// Escuchar en puerto 4001 BACKEND
 server.listen(4001, () =>
   console.log("🚀 Backend corriendo en http://localhost:4001")
 );

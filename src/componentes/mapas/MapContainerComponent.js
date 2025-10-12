@@ -8,7 +8,6 @@ import markerShadow from "leaflet/dist/images/marker-shadow.png";
 import { Box } from "@mui/material";
 import ClimaWidget from "../clima/ClimaWidget";
 import { Polyline } from "react-leaflet";
-//import L from "leaflet";
 
 // Icono personalizado
 const customIcon = new L.Icon({
@@ -20,15 +19,13 @@ const customIcon = new L.Icon({
   shadowSize: [45, 45],
 });
 
-const DEFAULT_POSITION = [-33.6756, -65.4578];
-
-//import L from "leaflet";
+const DEFAULT_POSITION = [-33.6756, -65.4578]; // Posicion por defecto Plaza San Martin
 
 const colectivoIcon = new L.Icon({
   iconUrl: "https://cdn-icons-png.flaticon.com/512/296/296216.png",
   iconSize: [40, 40],     // Tamaño del ícono
-  iconAnchor: [20, 40],   // Punto de anclaje (ajustalo si querés)
-  popupAnchor: [0, -40],  // Dónde aparece el popup respecto al ícono
+  iconAnchor: [20, 40],   // Punto de anclaje 
+  popupAnchor: [0, -40],  // Popup respecto al ícono
 });
 
 
@@ -87,7 +84,7 @@ const [posicionIndex, setPosicionIndex] = useState(0);
 const intervaloRef = useRef(null);
 
 
-// 👤 Usuario e imagen del avatar
+// Usuario e imagen del avatar
 const [username, setUsername] = useState(
   localStorage.getItem("username") || sessionStorage.getItem("username") || "Desconocido"
 );
@@ -95,7 +92,6 @@ const [username, setUsername] = useState(
 const [image, setImage] = useState(
   localStorage.getItem("image") || sessionStorage.getItem("image") || ""
 );
-
 
 useEffect(() => {
   intervaloRef.current = setInterval(() => {
@@ -155,7 +151,7 @@ const handleImageChange = async (e) => {
   const file = e.target.files[0];
   if (!file) return;
 
-  const userId = localStorage.getItem("userId") || sessionStorage.getItem("userId"); // asegurate de guardar esto en el login
+  const userId = localStorage.getItem("userId") || sessionStorage.getItem("userId"); 
 
   const formData = new FormData();
   formData.append("image", file);
@@ -257,7 +253,6 @@ const handleImageChange = async (e) => {
   </Typography>
 </div>
 
-
       <Button
         variant="contained"
         color="primary"
@@ -280,8 +275,6 @@ const handleImageChange = async (e) => {
 >
   CLIMA
 </Button>
-
-
       <Button
         variant="contained"
         color="secondary"
@@ -321,7 +314,6 @@ const handleImageChange = async (e) => {
       marginRight: '16px', // <--- Ajustá este valor para moverlos más o menos
     }}
 
-
   >
     {["A", "E", "Z E", "Z O"].map((linea) => (
       <Button
@@ -345,7 +337,7 @@ const handleImageChange = async (e) => {
 </Drawer>
 
 <Drawer
-  anchor="right" // ✅ CAMBIAMOS A RIGHT
+  anchor="right"
   open={mostrarClima}
   onClose={() => setMostrarClima(false)}
   PaperProps={{
@@ -381,7 +373,6 @@ const handleImageChange = async (e) => {
 >
   <Popup>🚌 Bus en movimiento</Popup>
 </Marker>
-
 
       {userPosition && (
   <Marker position={userPosition} icon={customIcon}>

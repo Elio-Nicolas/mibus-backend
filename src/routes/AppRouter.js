@@ -1,4 +1,3 @@
-
 //import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import Login from "../pages/Logins";
@@ -12,7 +11,7 @@ import { MapContainer } from "react-leaflet";
 import React, { useState, useEffect } from 'react';
 
 
-// Ruta protegida: solo deja pasar si está autenticado
+// Ruta protegida *solo deja pasar si está autenticado
 const ProtectedRoute = ({ children }) => {
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);

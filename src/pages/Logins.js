@@ -28,10 +28,10 @@ const Login = () => {
       });
 
       const data = await res.json();
-      console.log("🔍 Data recibida:", data);
+      console.log("Data recibida:", data);
 
       if (res.ok) {
-        alert(`✅ Usuario encontrado: ${data.username}`);
+        alert(` Usuario encontrado: ${data.username}`);
         // Guardar token
         if (remember) {
           localStorage.setItem("token", data.token);
@@ -39,8 +39,6 @@ const Login = () => {
           localStorage.setItem("image", data.image); 
           localStorage.setItem("userId", data.userId);
 
-         // alert("✅ Bienvenido " + data.username);
-         // navigate("/mapa");
         } else {
           sessionStorage.setItem("token", data.token);
           sessionStorage.setItem("username", data.username);
@@ -48,7 +46,7 @@ const Login = () => {
           sessionStorage.setItem("userId", data.userId); 
         }
 
-        //alert("✅ Inicio de sesión exitoso");
+        //alert("Inicio de sesión exitoso");
         navigate("/mapa");
       } else {
         alert("❌ Error: " + data.error);
