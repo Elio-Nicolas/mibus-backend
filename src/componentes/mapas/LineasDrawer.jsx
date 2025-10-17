@@ -1,0 +1,86 @@
+import React from "react";
+import {
+  Drawer,
+  Typography,
+  List,
+  ListItem,
+  ListItemText,
+  IconButton,
+  Divider,
+  Box,
+  Button,
+} from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
+
+const LineasDrawer = ({ open, onClose, buses = [] }) => {
+  const lineasDisponibles = ["A", "E", "Z E", "Z O"];
+
+  return (
+    <Drawer
+      anchor="bottom"
+      open={open}
+      onClose={onClose}
+      PaperProps={{
+        sx: {
+          backgroundColor: "transparent", // totalmente transparente
+          boxShadow: "none",               // quita sombra
+        },
+      }}
+    >
+      <div style={{ padding: 16, backgroundColor: "transparent" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <Typography variant="h6" sx={{ color: "#000" }}>Líneas de colectivo</Typography>
+          <IconButton onClick={onClose} sx={{ color: "#000" }}>
+            <CloseIcon />
+          </IconButton>
+        </div>
+
+        <Divider sx={{ my: 1, borderColor: "#000" }} />
+
+        {/* Lista de buses */}
+        <List>
+          {buses.length === 0 ? (
+            <ListItem>
+              <ListItemText primary="No hay autobuses disponibles" sx={{ color: "#000" }} />
+            </ListItem>
+          ) : (
+            buses.map((bus) => (
+              <ListItem key={bus._id}>
+                <ListItemText
+                  primary={`🚌 ${bus.nombre || "Bus"}`}
+                  secondary={`📍 ${bus.lat.toFixed(4)}, ${bus.lon.toFixed(4)} ⏰ ${new Date(bus.timestamp).toLocaleTimeString()}`}
+                  primaryTypographyProps={{ sx: { color: "#000" } }}
+                  secondaryTypographyProps={{ sx: { color: "#000" } }}
+                />
+              </ListItem>
+            ))
+          )}
+        </List>
+
+        {/* Botones de líneas para interacción */}
+        <Box sx={{ display: "flex", justifyContent: "center", gap: 2, mt: 2 }}>
+          {lineasDisponibles.map((linea) => (
+            <Button
+              key={linea}
+              variant="contained"
+              sx={{
+                borderRadius: "50%",
+                width: 60,
+                height: 60,
+                fontSize: 16,
+                background: "green",
+                opacity: 0.8,
+                color: "#fff",
+              }}
+              onClick={() => alert(`Seleccionaste la línea ${linea}`)}
+            >
+              {linea}
+            </Button>
+          ))}
+        </Box>
+      </div>
+    </Drawer>
+  );
+};
+
+export default LineasDrawer;

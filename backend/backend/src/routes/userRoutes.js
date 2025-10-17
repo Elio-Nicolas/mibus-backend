@@ -24,7 +24,7 @@ router.post("/signup", upload.single("image"), async (req, res) => {
   const { username, password } = req.body;
   const imagePath = req.file ? req.file.filename : null;
 
-  console.log("🧾 Datos recibidos:");
+  console.log("Datos recibidos:");
   console.log("Username:", username);
   console.log("Password:", password);
   console.log("Imagen:", req.file); // <--- VER ESTO!! ELIO
@@ -45,7 +45,7 @@ router.post("/signup", upload.single("image"), async (req, res) => {
 
     res.status(201).json({ message: "Usuario creado correctamente" });
   } catch (err) {
-    console.error("❌ Error al registrar usuario:", err);
+    console.error(" Error al registrar usuario:", err);
     res.status(500).json({ error: "No se pudo registrar el usuario" });
   }
 });
@@ -79,7 +79,7 @@ router.post("/signin", async (req, res) => {
    });
 
   } catch (err) {
-    console.error("❌ Error al iniciar sesión:", err);
+    console.error(" Error al iniciar sesión:", err);
     res.status(500).json({ error: "Error en el servidor" });
   }
 });
@@ -109,7 +109,7 @@ router.put("/upload/:id", upload.single("image"), async (req, res) => {
       user: updatedUser,
     });
   } catch (err) {
-    console.error("❌ Error al actualizar perfil:", err);
+    console.error(" Error al actualizar perfil:", err);
     res.status(500).json({ error: "Error en el servidor" });
   }
 });

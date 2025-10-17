@@ -4,28 +4,28 @@ import "leaflet/dist/leaflet.css";
 import io from "socket.io-client";
 
 import { io } from "socket.io-client";
-const socket = io("http://localhost:4001"); // Conectamos con el backend
+const socket = io("http://localhost:4001"); // conexion con el back
 
 const getLocation = (setPosition) => {
   if (navigator.geolocation) {
     navigator.geolocation.watchPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
-        console.log("📍 Ubicación enviada al backend:", latitude, longitude);
+        console.log("se envio ubicacion al backend:", latitude, longitude);
         setPosition([latitude, longitude]);
 
-        // Enviar la ubicación al backend
+        // Envia ubicación al back
         socket.emit("locationUpdate", {
           id: "colectivo1", // ID del colectivo simulado
           lat: latitude,
           lon: longitude,
         });
       },
-      (error) => console.error("❌ Error obteniendo la ubicación:", error),
+      (error) => console.error(" Error de ubicación:", error),
       { enableHighAccuracy: true, maximumAge: 0 }
     );
   } else {
-    console.error("❌ Geolocalización no soportada en este navegador.");
+    console.error(" Geolocalización no soportada en este navegador.");
   }
 };
 
@@ -38,7 +38,7 @@ function GeolocationMap() {
 
     // Escuchar actualizaciones de ubicación desde el backend
     socket.on("busUpdate", (data) => {
-      console.log("📍 Ubicaciones recibidas del backend:", data);
+      console.log("Ubicaciones recibidas del back:", data);
       setBuses(data);
     });
 
@@ -54,18 +54,18 @@ function GeolocationMap() {
 
           {/* Marker de la PC (simula el colectivo) */}
           <Marker position={position}>
-            <Popup>📍 Mi PC (colectivo)</Popup>
+            <Popup> PC (colectivo)</Popup>
           </Marker>
 
           {/* Markers de los colectivos en el backend */}
           {buses.map((bus) => (
             <Marker key={bus.id} position={[bus.lat, bus.lon]}>
-              <Popup>🚌 Colectivo {bus.id}</Popup>
+              <Popup> Colectivo {bus.id}</Popup>
             </Marker>
           ))}
         </MapContainer>
       ) : (
-        <p>📍 Obteniendo ubicación...</p>
+        <p> Obteniendo ubicación...</p>
       )}
     </div>
   );

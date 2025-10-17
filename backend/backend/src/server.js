@@ -42,21 +42,21 @@ const Bus = mongoose.model("Bus", BusSchema);
 
 // WebSocket
 io.on("connection", (socket) => {
-  console.log("✅ Cliente conectado");
+  console.log("conectado");
 
   socket.on("locationUpdate", async (data) => {
-    console.log("📍 Ubicación recibida:", data);
+    console.log(" Ubicación recibida:", data);
     await Bus.findOneAndUpdate({ id: data.id }, data, { upsert: true });
   });
 
-  socket.on("disconnect", () => console.log("❌ Cliente desconectado"));
+  socket.on("disconnect", () => console.log("desconectado"));
 });
 /*
-// 🔁 Emitir datos cada 3 segundos
+//  Emitir datos cada 3 segundos
 setInterval(async () => {
   const buses = await Bus.find({});
   io.emit("busUpdate", buses);
-  console.log("🔄 Enviando datos a los clientes:", buses);
+  console.log(" Enviando datos a los clientes:", buses);
 }, 3000);*/
 
 // Ruta REST única
@@ -65,14 +65,14 @@ app.get("/buses", async (req, res) => {
     const buses = await Bus.find({});
     res.json(buses);
   } catch (err) {
-    console.error("❌ Error al obtener buses:", err);
+    console.error(" Error al obtener Colectivos:", err);
     res.status(500).json({ error: "Error al obtener los buses" });
   }
 });
 
 // Escuchar en puerto 4001 BACKEND
 server.listen(4001, () =>
-  console.log("🚀 Backend corriendo en http://localhost:4001")
+  console.log(" back corriendo http://localhost:4001")
 );
 
 

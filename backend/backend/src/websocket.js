@@ -6,11 +6,11 @@ function setupWebSocket(server) {
   const wss = new WebSocket.Server({ server });
 
   wss.on("connection", (ws) => {
-    console.log("🟢 Cliente conectado");
+    console.log("Conectado");
     clients.push(ws);
 
     ws.on("close", () => {
-      console.log("🔴 Cliente desconectado");
+      console.log("Desconectado");
       clients = clients.filter((client) => client !== ws);
     });
   });
