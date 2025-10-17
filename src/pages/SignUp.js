@@ -114,7 +114,7 @@ const SignUp = () => {
         </div>
 
         <p style={{ marginTop: "1rem" }}>
-          ¿Ya tenés cuenta? <Link to="/signin">Iniciá sesión</Link>
+          ¿Ya tenés cuenta? <Link to="/signin">Iniciá sesión</Link> // 
         </p>
       </form>
     </div>

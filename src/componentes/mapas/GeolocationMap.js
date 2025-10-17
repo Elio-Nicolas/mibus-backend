@@ -4,7 +4,7 @@ import "leaflet/dist/leaflet.css";
 import io from "socket.io-client";
 
 import { io } from "socket.io-client";
-const socket = io("http://localhost:3001"); // Conectamos con el backend
+const socket = io("http://localhost:4001"); // Conectamos con el backend
 
 const getLocation = (setPosition) => {
   if (navigator.geolocation) {

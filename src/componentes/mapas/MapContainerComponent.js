@@ -214,7 +214,7 @@ const handleImageChange = async (e) => {
     <List>
       {buses.length === 0 ? (
         <ListItem>
-          <ListItemText primary="No hay buses disponibles" />
+          <ListItemText primary="NO HAY AUTOBUSES" />
         </ListItem>
       ) : (
         buses.map((bus) => (

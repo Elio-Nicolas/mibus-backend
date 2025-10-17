@@ -9,7 +9,7 @@ const path = require("path");
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads"))); //acceso a img desde el navegador
 
-app.use(cors({ origin: "http://localhost:4000" })); // Solo permite el acceso del FRONT
+app.use(cors()); // Solo permite el acceso del FRONT  { origin: "http://localhost:4000" } <-- VA ESTO DENTRO DE ()
 
 app.use(express.json()); //  Parsear JSON
 
@@ -18,7 +18,7 @@ app.use('/uploads', express.static('uploads'));
 
 const server = http.createServer(app);
 const io = socketIo(server, {
-  cors: { origin: "http://localhost:4000" },
+  cors: { origin: "*" }, //http://localhost:4000 <-- VA ESTO DENTRO DE ""
 });
 
 
