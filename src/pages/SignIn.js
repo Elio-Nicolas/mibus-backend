@@ -41,14 +41,14 @@ const SignIn = () => {
         localStorage.setItem("token", data.token); // Guardamos el token
         localStorage.setItem("user", JSON.stringify(data.user));
         localStorage.setItem("userId", data.userId);
-        alert("✅ Usuario registrado correctamente");
+        alert("Usuario registrado correctamente");
         navigate("/mapa"); // Redirigir a ruta protegida
       } else {
-        alert("❌ Error: " + data.error);
+        alert("Error: " + data.error);
       }
     } catch (err) {
       console.error("Error en el registro:", err);
-      alert("❌ Error en el servidor");
+      alert(" Error en el servidor");
     }
   };
 
@@ -64,7 +64,7 @@ const SignIn = () => {
           <input
             type="text"
             name="username"
-            placeholder="Nombre de Usuario"
+            placeholder="Usuario"
             value={form.username}
             onChange={handleChange}
             required
@@ -76,7 +76,7 @@ const SignIn = () => {
           <input
             type="password"
             name="password"
-            placeholder="Ingrese Contraseña"
+            placeholder="Contraseña"
             value={form.password}
             onChange={handleChange}
             required

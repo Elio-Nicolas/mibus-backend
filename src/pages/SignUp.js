@@ -44,18 +44,18 @@ const SignUp = () => {
       const data = await res.json();
 
       if (res.ok) {
-        alert("✅ Usuario registrado");
+        alert("Usuario registrado");
         navigate("/signin");
       } else {
         if (data.error === "El usuario ya existe") {
-          alert("⚠️ Ya existe un usuario con ese nombre");
+          alert("Ya existe un usuario con ese nombre");
         } else {
-          alert("❌ Error: " + data.error);
+          alert(" Error: " + data.error);
         }
       }
     } catch (err) {
       console.error("Error al registrarse:", err);
-      alert("❌ Error en el servidor");
+      alert("Error en el servidor");
     }
   };
 
@@ -70,7 +70,7 @@ const SignUp = () => {
           <input
             type="text"
             name="username"
-            placeholder="Nombre de usuario"
+            placeholder="Usuario"
             value={formData.username}
             onChange={handleChange}
             className="signup-input"
@@ -114,7 +114,7 @@ const SignUp = () => {
         </div>
 
         <p style={{ marginTop: "1rem" }}>
-          ¿Ya tenés cuenta? <Link to="/signin">Iniciá sesión</Link> // 
+          ¿Ya tenés cuenta?   <Link to="/login"><button className="btn btn-login1">    INICIAR SESIÓN</button></Link>  
         </p>
       </form>
     </div>

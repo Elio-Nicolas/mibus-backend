@@ -49,11 +49,11 @@ const Login = () => {
         //alert("Inicio de sesión exitoso");
         navigate("/mapa");
       } else {
-        alert("❌ Error: " + data.error);
+        alert("Error: " + data.error);
       }
     } catch (err) {
       console.error("Error al iniciar sesión:", err);
-      alert("❌ Error en el servidor");
+      alert("Error en el servidor");
     }
   };
 
@@ -65,11 +65,11 @@ const Login = () => {
 
       <form onSubmit={handleLogin} className="login-form">
         <div className="input-group">
-          <label>Usuario</label>
+          <label> </label>
           <input
             type="text"
             name="username"
-            placeholder="Nombre de Usuario"
+            placeholder="Usuario"
             value={form.username}
             onChange={handleChange}
             required
@@ -77,11 +77,11 @@ const Login = () => {
         </div>
 
         <div className="input-group">
-          <label>Contraseña</label>
+          <label> </label>
           <input
             type="password"
             name="password"
-            placeholder="Ingrese Contraseña"
+            placeholder="Contraseña"
             value={form.password}
             onChange={handleChange}
             required
