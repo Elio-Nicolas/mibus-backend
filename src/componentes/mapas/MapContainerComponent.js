@@ -9,6 +9,10 @@ import Sidebar from "./Sidebar";
 import LineasDrawer from "./LineasDrawer";
 import ClimaDrawer from "./ClimaDrawer";
 import ClimaWidget from "../clima/ClimaWidget";
+import { GeoJSON } from "react-leaflet";
+//import paradasGeoJSON from "./mapas/lineas.geojson";
+
+
 
 // Iconos
 const customIcon = new L.Icon({
@@ -159,6 +163,18 @@ const MapContainerComponent = () => {
     }
   };
 
+  // ACA
+
+  const [paradasData, setParadasData] = useState(null);
+
+useEffect(() => {
+  fetch("/lineas.geojson")
+    .then((res) => res.json())
+    .then((data) => {console.log("📍 Datos GeoJSON cargados:", data); setParadasData(data);})
+    .catch((err) => console.error("Error cargando GeoJSON:", err));
+}, []);
+
+
   return (
     <div style={{ position: "relative", height: "100vh" }}>
       {/* Botón para abrir sidebar */}
@@ -211,6 +227,29 @@ const MapContainerComponent = () => {
         />
 
         <Polyline positions={rutaColectivo} color="blue" />
+
+        {/* Paradas de colectivo */}
+{paradasData && (
+  <GeoJSON
+    data={paradasData}
+    pointToLayer={(feature, latlng) =>
+      L.marker(latlng, {
+        icon: new L.Icon({
+          iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
+          iconSize: [25, 25],
+          iconAnchor: [12, 24],
+          popupAnchor: [0, -20],
+        }),
+      })
+    }
+    onEachFeature={(feature, layer) => {
+      const name = feature.properties?.name || "Parada de colectivo";
+      layer.bindPopup(`🚌 ${name}`);
+    }}
+  />
+)}
+
+
 
         {/* Bus en movimiento */}
         <Marker position={rutaColectivo[posicionIndex]} icon={colectivoIcon}>
