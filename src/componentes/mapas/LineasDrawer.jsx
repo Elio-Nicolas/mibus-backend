@@ -12,7 +12,7 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 
-const LineasDrawer = ({ open, onClose, buses = [] }) => {
+const LineasDrawer = ({ open, onClose, buses = [], onLineaSelect }) => {
   const lineasDisponibles = ["A", "E", "Z E", "Z O"];
 
   return (
@@ -22,12 +22,15 @@ const LineasDrawer = ({ open, onClose, buses = [] }) => {
       onClose={onClose}
       PaperProps={{
         sx: {
-          backgroundColor: "transparent", // totalmente transparente
-          boxShadow: "none",               // quita sombra
+          backgroundColor: "transparent",
+          boxShadow: "0 -2px 10px rgba(0,0,0,0.2)",
+          borderTopLeftRadius: 20,
+          borderTopRightRadius: 20,
+          backdropFilter: "blur(4px)",
         },
       }}
     >
-      <div style={{ padding: 16, backgroundColor: "transparent" }}>
+      <div style={{ padding: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <Typography variant="h6" sx={{ color: "#000" }}>Líneas de colectivo</Typography>
           <IconButton onClick={onClose} sx={{ color: "#000" }}>
@@ -37,7 +40,6 @@ const LineasDrawer = ({ open, onClose, buses = [] }) => {
 
         <Divider sx={{ my: 1, borderColor: "#000" }} />
 
-        {/* Lista de buses */}
         <List>
           {buses.length === 0 ? (
             <ListItem>
@@ -57,7 +59,6 @@ const LineasDrawer = ({ open, onClose, buses = [] }) => {
           )}
         </List>
 
-        {/* Botones de líneas para interacción */}
         <Box sx={{ display: "flex", justifyContent: "center", gap: 2, mt: 2 }}>
           {lineasDisponibles.map((linea) => (
             <Button
@@ -72,7 +73,7 @@ const LineasDrawer = ({ open, onClose, buses = [] }) => {
                 opacity: 0.8,
                 color: "#fff",
               }}
-              onClick={() => alert(`Seleccionaste la línea ${linea}`)}
+              onClick={() => onLineaSelect(linea)}
             >
               {linea}
             </Button>

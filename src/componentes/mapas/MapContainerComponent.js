@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline, GeoJSON } from "react-leaflet";
 import L from "leaflet";
-import { IconButton, Typography, Box, Button } from "@mui/material";
+import { IconButton } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
 import markerShadow from "leaflet/dist/images/marker-shadow.png";
@@ -9,10 +9,7 @@ import Sidebar from "./Sidebar";
 import LineasDrawer from "./LineasDrawer";
 import ClimaDrawer from "./ClimaDrawer";
 import ClimaWidget from "../clima/ClimaWidget";
-import { GeoJSON } from "react-leaflet";
-//import paradasGeoJSON from "./mapas/lineas.geojson";
-
-
+import "./Drawers.css";
 
 // Iconos
 const customIcon = new L.Icon({
@@ -33,7 +30,6 @@ const colectivoIcon = new L.Icon({
 
 const DEFAULT_POSITION = [-33.6756, -65.4578];
 
-// Para centrar mapa en posición dinámica
 const SetViewToLocation = ({ position }) => {
   const map = useMap();
   useEffect(() => {
@@ -43,16 +39,15 @@ const SetViewToLocation = ({ position }) => {
 };
 
 const MapContainerComponent = () => {
-  // Estados principales
   const [buses, setBuses] = useState([]);
   const [userPosition, setUserPosition] = useState(DEFAULT_POSITION);
   const [openDrawer, setOpenDrawer] = useState(false);
   const [openLineasDrawer, setOpenLineasDrawer] = useState(false);
   const [mostrarClima, setMostrarClima] = useState(false);
-
   const [posicionIndex, setPosicionIndex] = useState(0);
   const intervaloRef = useRef(null);
-
+  const [selectedLinea, setSelectedLinea] = useState(null);
+  const [paradasData, setParadasData] = useState(null);
   const [username, setUsername] = useState(
     localStorage.getItem("username") || sessionStorage.getItem("username") || "Desconocido"
   );
@@ -60,38 +55,18 @@ const MapContainerComponent = () => {
     localStorage.getItem("image") || sessionStorage.getItem("image") || ""
   );
 
-  // Recorrido del colectivo ARRAY
   const rutaColectivo = [
-    [-33.675013, -65.461921],
-    [-33.674815, -65.463013],
-    [-33.675660, -65.463276],
-    [-33.675899, -65.462208],
-    [-33.676837, -65.462482],
-    [-33.677760, -65.462771],
-    [-33.678644, -65.463029],
-    [-33.679514, -65.463302],
-    [-33.680398, -65.463592],
-    [-33.681291, -65.463827],
-    [-33.681551, -65.462801],
-    [-33.680661, -65.462512],
-    [-33.679752, -65.462244],
-    [-33.678862, -65.461977],
-    [-33.677962, -65.461698],
-    [-33.678194, -65.460662],
-    [-33.678416, -65.459570],
-    [-33.677500, -65.459313],
-    [-33.676599, -65.459083],
-    [-33.675718, -65.458785],
-    [-33.675470, -65.459864],
-    [-33.675238, -65.460923],
-    [-33.674387, -65.460626],
-    [-33.673474, -65.460347],
-    [-33.673258, -65.461425],
-    [-33.674140, -65.461704],
-    [-33.675037, -65.461927],
+    [-33.675013, -65.461921], [-33.674815, -65.463013], [-33.675660, -65.463276],
+    [-33.675899, -65.462208], [-33.676837, -65.462482], [-33.677760, -65.462771],
+    [-33.678644, -65.463029], [-33.679514, -65.463302], [-33.680398, -65.463592],
+    [-33.681291, -65.463827], [-33.681551, -65.462801], [-33.680661, -65.462512],
+    [-33.679752, -65.462244], [-33.678862, -65.461977], [-33.677962, -65.461698],
+    [-33.678194, -65.460662], [-33.678416, -65.459570], [-33.677500, -65.459313],
+    [-33.676599, -65.459083], [-33.675718, -65.458785], [-33.675470, -65.459864],
+    [-33.675238, -65.460923], [-33.674387, -65.460626], [-33.673474, -65.460347],
+    [-33.673258, -65.461425], [-33.674140, -65.461704], [-33.675037, -65.461927],
   ];
 
-  // Animación del Cole
   useEffect(() => {
     intervaloRef.current = setInterval(() => {
       setPosicionIndex((prev) => (prev + 1) % rutaColectivo.length);
@@ -99,7 +74,6 @@ const MapContainerComponent = () => {
     return () => clearInterval(intervaloRef.current);
   }, []);
 
-  // Geolocalización del usuario
   useEffect(() => {
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
@@ -109,7 +83,6 @@ const MapContainerComponent = () => {
     }
   }, []);
 
-  // Fetch clectivo desde back
   const fetchBuses = async () => {
     try {
       const response = await fetch("http://localhost:4001/buses");
@@ -126,13 +99,6 @@ const MapContainerComponent = () => {
     const interval = setInterval(fetchBuses, 3000);
     return () => clearInterval(interval);
   }, []);
-
-  // Funciones de usuario
-  const handleLogout = () => {
-    localStorage.clear();
-    sessionStorage.clear();
-    window.location.href = "/";
-  };
 
   const handleChangeUsername = () => {
     const newName = prompt("Ingrese su nuevo nombre:", username);
@@ -163,100 +129,44 @@ const MapContainerComponent = () => {
     }
   };
 
-  // ACA
-
-  const [paradasData, setParadasData] = useState(null);
-
-useEffect(() => {
-  fetch("/lineas.geojson")
-    .then((res) => res.json())
-    .then((data) => {console.log("📍 Datos GeoJSON cargados:", data); setParadasData(data);})
-    .catch((err) => console.error("Error cargando GeoJSON:", err));
-}, []);
-
+  useEffect(() => {
+    fetch("/lineas.geojson")
+      .then((res) => res.json())
+      .then((data) => setParadasData(data))
+      .catch((err) => console.error("Error cargando GeoJSON:", err));
+  }, []);
 
   return (
-    <div style={{ position: "relative", height: "100vh" }}>
-      {/* Botón para abrir sidebar */}
-      <IconButton
-        onClick={() => setOpenDrawer(true)}
-        style={{
-          position: "absolute",
-          top: 20,
-          right: 10,
-          zIndex: 1000,
-          backgroundColor: "white",
-          border: "1px solid #ccc",
-          boxShadow: "0 2px 4px rgba(0,0,0,0.3)",
-        }}
-      >
-        <MenuIcon fontSize="large" />
-      </IconButton>
-
-      {/* Sidebar */}
-      <Sidebar
-        open={openDrawer}
-        onClose={() => setOpenDrawer(false)}
-        buses={buses}
-        image={image}
-        username={username}
-        handleImageChange={handleImageChange}
-        handleChangeUsername={handleChangeUsername}
-        handleLogout={handleLogout}
-        setOpenLineasDrawer={setOpenLineasDrawer}
-        setMostrarClima={setMostrarClima}
-      />
-
-      {/* Drawer de líneas */}
-      <LineasDrawer open={openLineasDrawer} onClose={() => setOpenLineasDrawer(false)} />
-
-      {/* Drawer de clima */}
-      <ClimaDrawer open={mostrarClima} onClose={() => setMostrarClima(false)}>
-        <ClimaWidget />
-      </ClimaDrawer>
-
-      {/* Mapa */}
-      <MapContainer
-        center={DEFAULT_POSITION}
-        zoom={17}
-        style={{ height: "100vh", width: "100%" }}
-      >
-        <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution="&copy; OpenStreetMap contributors"
-        />
-
+    <div style={{ position: "relative", height: "100vh", width: "100vw", overflow: "hidden" }}>
+      {/* MAPA */}
+      <MapContainer center={DEFAULT_POSITION} zoom={17} style={{ height: "100%", width: "100%" }}>
+        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap contributors" />
         <Polyline positions={rutaColectivo} color="blue" />
 
-        {/* Paradas de colectivo */}
-{paradasData && (
-  <GeoJSON
-    data={paradasData}
-    pointToLayer={(feature, latlng) =>
-      L.marker(latlng, {
-        icon: new L.Icon({
-          iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
-          iconSize: [25, 25],
-          iconAnchor: [12, 24],
-          popupAnchor: [0, -20],
-        }),
-      })
-    }
-    onEachFeature={(feature, layer) => {
-      const name = feature.properties?.name || "Parada de colectivo";
-      layer.bindPopup(`🚌 ${name}`);
-    }}
-  />
-)}
+        {selectedLinea === "A" && paradasData && (
+          <GeoJSON
+            data={paradasData}
+            pointToLayer={(feature, latlng) =>
+              L.marker(latlng, {
+                icon: new L.Icon({
+                  iconUrl: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24'><circle cx='12' cy='12' r='2' fill='%23007bff'/></svg>",
+                  iconSize: [25, 25],
+                  iconAnchor: [12, 24],
+                  popupAnchor: [0, -20],
+                }),
+              })
+            }
+            onEachFeature={(feature, layer) => {
+              const name = feature.properties?.name || "Parada de colectivo";
+              layer.bindPopup(`🚌 ${name}`);
+            }}
+          />
+        )}
 
-
-
-        {/* Bus en movimiento */}
         <Marker position={rutaColectivo[posicionIndex]} icon={colectivoIcon}>
           <Popup>🚌 Colectivo en movimiento</Popup>
         </Marker>
 
-        {/* Usuario */}
         {userPosition && (
           <Marker position={userPosition} icon={customIcon}>
             <Popup>Estás acá</Popup>
@@ -265,6 +175,48 @@ useEffect(() => {
 
         <SetViewToLocation position={userPosition} />
       </MapContainer>
+
+      {/* BOTÓN Y DRAWERS FIJOS EN PANTALLA */}
+      <IconButton
+        onClick={() => setOpenDrawer(true)}
+        style={{
+          position: "fixed",
+          top: 20,
+          right: 10,
+          zIndex: 1300,
+          backgroundColor: "white",
+          border: "1px solid #ccc",
+          boxShadow: "0 2px 4px rgba(0,0,0,0.3)",
+        }}
+      >
+        <MenuIcon fontSize="large" />
+      </IconButton>
+
+      <Sidebar
+        open={openDrawer}
+        onClose={() => setOpenDrawer(false)}
+        buses={buses}
+        image={image}
+        username={username}
+        handleImageChange={handleImageChange}
+        handleChangeUsername={handleChangeUsername}
+        handleLogout={() => { localStorage.clear(); sessionStorage.clear(); window.location.href = "/"; }}
+        setOpenLineasDrawer={setOpenLineasDrawer}
+        setMostrarClima={setMostrarClima}
+      />
+
+      <LineasDrawer
+        open={openLineasDrawer}
+        onClose={() => setOpenLineasDrawer(false)}
+        onLineaSelect={(linea) => {
+          setSelectedLinea(linea);
+          setOpenLineasDrawer(false);
+        }}
+      />
+
+      <ClimaDrawer open={mostrarClima} onClose={() => setMostrarClima(false)}>
+        <ClimaWidget />
+      </ClimaDrawer>
     </div>
   );
 };
