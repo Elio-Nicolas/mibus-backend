@@ -26,7 +26,7 @@ const userRoutes = require("./routes/userRoutes"); //  importar
 app.use("/api/users", userRoutes);                 //  usar
 
 // Conexión MongoDB
-mongoose.connect("mongodb://localhost:27017/colectivos", {
+mongoose.connect("mongodb+srv://baigorriaen83_db_user:5RnvPqIcXJq6h197@clustermibus.fc3bgtx.mongodb.net/?appName=ClusterMibus", {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
