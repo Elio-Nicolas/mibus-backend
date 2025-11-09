@@ -70,9 +70,8 @@ app.get("/buses", async (req, res) => {
   }
 });
 
-// Escuchar en puerto 4001 BACKEND
-server.listen(4001, () =>
-  console.log(" back corriendo http://localhost:4001")
-);
+const PORT = process.env.PORT || 4001;
+server.listen(PORT, () => console.log(`🚍 Backend corriendo en puerto ${PORT}`));
+
 
 

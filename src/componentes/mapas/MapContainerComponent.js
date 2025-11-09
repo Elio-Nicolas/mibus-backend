@@ -55,7 +55,8 @@ const MapContainerComponent = () => {
     localStorage.getItem("image") || sessionStorage.getItem("image") || ""
   );
 
-  const rutaColectivo = [
+  // === RUTA LÍNEA A ===
+/*  const rutaColectivo = [
     [-33.675013, -65.461921], [-33.674815, -65.463013], [-33.675660, -65.463276],
     [-33.675899, -65.462208], [-33.676837, -65.462482], [-33.677760, -65.462771],
     [-33.678644, -65.463029], [-33.679514, -65.463302], [-33.680398, -65.463592],
@@ -67,12 +68,45 @@ const MapContainerComponent = () => {
     [-33.673258, -65.461425], [-33.674140, -65.461704], [-33.675037, -65.461927],
   ];
 
-  useEffect(() => {
-    intervaloRef.current = setInterval(() => {
-      setPosicionIndex((prev) => (prev + 1) % rutaColectivo.length);
+  // === RUTA LÍNEA E ===
+/*  const rutaE = [
+    [-33.6651913, -65.4670209], [-33.6662841, -65.4663497], [-33.6680972, -65.4668634],
+    [-33.6962395, -65.4391506], [-33.6951245, -65.4395466], [-33.6940188, -65.4436722],
+    [-33.6983936, -65.445129], [-33.6991048, -65.4462966], [-33.6972608, -65.4469344],
+    [-33.6966449, -65.4489648], [-33.695683, -65.4498822], [-33.6909218, -65.4495196],
+    [-33.6921784, -65.4488554], [-33.6902046, -65.4527185], [-33.6897671, -65.4548195],
+    [-33.6910671, -65.4575691], [-33.6905749, -65.4598676], [-33.690116, -65.4618117],
+    [-33.6896777, -65.4639592], [-33.6891855, -65.4662823], [-33.6887112, -65.4684267],
+    [-33.6884889, -65.4705195], [-33.6894495, -65.4697976], [-33.6899139, -65.4676587],
+    [-33.6902381, -65.4652579], [-33.6885091, -65.4647386], [-33.6858575, -65.4639666],
+    [-33.684091, -65.4634314], [-33.682301, -65.4628869], [-33.6805065, -65.4623666],
+    [-33.6787276, -65.4618462], [-33.6771696, -65.4613849], [-33.675125, -65.4607733],
+    [-33.6733259, -65.4602369], [-33.6715535, -65.4597246], [-33.6697476, -65.4591774],
+    [-33.6679685, -65.458649], [-33.6661715, -65.4581072], [-33.6643923, -65.4575735],
+    [-33.6639436, -65.4562082], [-33.6644124, -65.4540973], [-33.6580431, -65.4528259],
+    [-33.6562503, -65.4522466], [-33.6536545, -65.4513882], [-33.6485684, -65.4497379],
+    [-33.6437099, -65.4485877],
+  ]; */
+
+  const [posicionIndexA, setPosicionIndexA] = useState(0);
+  const [posicionIndexE, setPosicionIndexE] = useState(0);
+  const intervaloA = useRef(null);
+  const intervaloE = useRef(null);
+
+  /*useEffect(() => {
+    intervaloA.current = setInterval(() => {
+    setPosicionIndexA((prev) => (prev + 1) % rutaColectivo.length);
     }, 2700);
-    return () => clearInterval(intervaloRef.current);
+    return () => clearInterval(intervaloA.current);
   }, []);
+
+  /*useEffect(() => {
+    intervaloE.current = setInterval(() => {
+      setPosicionIndexE((prev) => (prev + 1) % rutaE.length);
+    }, 2700);
+    return () => clearInterval(intervaloE.current);
+  }, []);*/
+ 
 
   useEffect(() => {
     if ("geolocation" in navigator) {
@@ -141,7 +175,7 @@ const MapContainerComponent = () => {
       {/* MAPA */}
       <MapContainer center={DEFAULT_POSITION} zoom={17} style={{ height: "100%", width: "100%" }}>
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap contributors" />
-        <Polyline positions={rutaColectivo} color="blue" />
+       {/* <Polyline positions={rutaColectivo} color="blue" /> */}
 
         {selectedLinea === "A" && paradasData && (
           <GeoJSON
@@ -163,9 +197,18 @@ const MapContainerComponent = () => {
           />
         )}
 
-        <Marker position={rutaColectivo[posicionIndex]} icon={colectivoIcon}>
-          <Popup>🚌 Colectivo en movimiento</Popup>
-        </Marker>
+        {/* Línea A 
+<Polyline positions={rutaColectivo} color="blue" />
+<Marker position={rutaColectivo[posicionIndexA]} icon={colectivoIcon}>
+  <Popup>🚌 Línea A en movimiento</Popup>
+</Marker>
+
+{/* Línea E 
+<Polyline positions={rutaE} color="green" />
+<Marker position={rutaE[posicionIndexE]} icon={colectivoIcon}>
+  <Popup>🚌 Línea E en movimiento</Popup>
+</Marker>*/}
+
 
         {userPosition && (
           <Marker position={userPosition} icon={customIcon}>
