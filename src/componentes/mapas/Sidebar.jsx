@@ -48,7 +48,7 @@ const Sidebar = ({
           <label htmlFor="avatarUpload">
             <Avatar
               alt="Perfil"
-              src={image ? `http://localhost:4001/uploads/${image}` : ""}
+              src={image || ""}
               sx={{ width: 85, height: 85, margin: "0 auto", cursor: "pointer" }}
             />
           </label>
