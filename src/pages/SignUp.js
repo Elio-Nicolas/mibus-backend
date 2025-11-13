@@ -36,10 +36,11 @@ const SignUp = () => {
     }
 
     try {
-      const res = await fetch("http://localhost:4001/api/users/signup", { // se cambio de 3001 a 4001
+      const res = await fetch("https://mibus-backend.onrender.com/api/users/signup", {
         method: "POST",
         body: formPayload,
-      });
+         });  
+
 
       const data = await res.json();
 
