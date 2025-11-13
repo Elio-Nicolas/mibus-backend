@@ -10,6 +10,10 @@ import LineasDrawer from "./LineasDrawer";
 import ClimaDrawer from "./ClimaDrawer";
 import ClimaWidget from "../clima/ClimaWidget";
 import "./Drawers.css";
+import io from "socket.io-client";
+
+const socket = io("https://mibus-backend.onrender.com"); //backend en Render
+
 
 // Iconos
 const customIcon = new L.Icon({
@@ -107,19 +111,40 @@ const MapContainerComponent = () => {
     return () => clearInterval(intervaloE.current);
   }, []);*/
  
-
+// ---------------------------
+// Agregado para geolocalizar
+//----------------------------
   useEffect(() => {
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => setUserPosition([pos.coords.latitude, pos.coords.longitude]),
-        (error) => console.error("Error obteniendo ubicación:", error.message)
-      );
-    }
-  }, []);
+  if ("geolocation" in navigator) {
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        setUserPosition([latitude, longitude]);
+
+        const userId = localStorage.getItem("userId") || sessionStorage.getItem("userId");
+        const username = localStorage.getItem("username") || sessionStorage.getItem("username");
+
+        if (userId) {
+          socket.emit("updateLocation", {
+            userId,
+            username,
+            latitude,
+            longitude,
+          });
+        }
+      },
+      (error) => console.error("Error obteniendo ubicación:", error.message),
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
+    );
+
+    return () => navigator.geolocation.clearWatch(watchId);
+  }
+}, []);
+
 
   const fetchBuses = async () => {
     try {
-      const response = await fetch("http://localhost:4001/buses");
+      const response = await fetch("https://mibus-frontend.onrender.com/buses");
       if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
       const data = await response.json();
       setBuses(data);
@@ -127,6 +152,22 @@ const MapContainerComponent = () => {
       console.error("Error obteniendo buses:", error);
     }
   };
+
+  // ---------------------------------------
+  // Colocado para rastrear Bus
+  // ---------------------------------------
+
+  useEffect(() => {
+  socket.on("locationUpdate", (data) => {
+    setBuses((prev) => {
+      const updated = prev.filter((b) => b.userId !== data.userId);
+      return [...updated, data];
+    });
+  });
+
+  return () => socket.off("locationUpdate");
+}, []);
+
 
   useEffect(() => {
     fetchBuses();
@@ -217,6 +258,17 @@ const MapContainerComponent = () => {
         )}
 
         <SetViewToLocation position={userPosition} />
+
+        {buses.map((bus) => (
+  <Marker
+    key={bus.userId}
+    position={[bus.latitude, bus.longitude]}
+    icon={colectivoIcon}
+  >
+    <Popup>🚌 {bus.username}</Popup>
+  </Marker>
+))}
+
       </MapContainer>
 
       {/* BOTÓN Y DRAWERS FIJOS EN PANTALLA */}
