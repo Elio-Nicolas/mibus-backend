@@ -149,7 +149,7 @@ const MapContainerComponent = () => {
     const formData = new FormData();
     formData.append("image", file);
     try {
-      const response = await fetch(`http://localhost:4001/api/users/upload/${userId}`, {
+      const response = await fetch(`https://mibus-backend.onrender.com/api/users/upload/${userId}`, {
         method: "PUT",
         body: formData,
       });
