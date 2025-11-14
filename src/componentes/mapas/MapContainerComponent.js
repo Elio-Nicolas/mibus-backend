@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline, GeoJSON } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMap, /*Polyline*/ GeoJSON } from "react-leaflet";
 import L from "leaflet";
 import { IconButton } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
@@ -45,15 +45,17 @@ const SetViewToLocation = ({ position }) => {
 };
 
 const MapContainerComponent = () => {
-  const [isSharing, setIsSharing] = useState(false);
+  const [isSharing, setIsSharing] = useState(false); // false = NO muestra la ubicación
+  const [userPosition, setUserPosition] = useState(null);
+ // const [isSharing, setIsSharing] = useState(false);
   const watchIdRef = useRef(null);
   const [buses, setBuses] = useState([]);
-  const [userPosition, setUserPosition] = useState(DEFAULT_POSITION);
+ // const [userPosition, setUserPosition] = useState(DEFAULT_POSITION);
   const [openDrawer, setOpenDrawer] = useState(false);
   const [openLineasDrawer, setOpenLineasDrawer] = useState(false);
   const [mostrarClima, setMostrarClima] = useState(false);
-  const [posicionIndex, setPosicionIndex] = useState(0);
-  const intervaloRef = useRef(null);
+ // const [posicionIndex, setPosicionIndex] = useState(0);
+  //const intervaloRef = useRef(null);
   const [selectedLinea, setSelectedLinea] = useState(null);
   const [paradasData, setParadasData] = useState(null);
   const [username, setUsername] = useState(
@@ -96,11 +98,11 @@ const MapContainerComponent = () => {
     [-33.6437099, -65.4485877],
   ]; */
 
-  const [posicionIndexA, setPosicionIndexA] = useState(0);
+ /*const [posicionIndexA, setPosicionIndexA] = useState(0);
   const [posicionIndexE, setPosicionIndexE] = useState(0);
   const intervaloA = useRef(null);
   const intervaloE = useRef(null);
-
+*/
   /*useEffect(() => {
     intervaloA.current = setInterval(() => {
     setPosicionIndexA((prev) => (prev + 1) % rutaColectivo.length);
@@ -161,6 +163,8 @@ const stopSharing = () => {
   if (watchIdRef.current) {
     navigator.geolocation.clearWatch(watchIdRef.current);
   }
+
+  setUserPosition(null);
 
   const userId =
     localStorage.getItem("userId") || sessionStorage.getItem("userId");
@@ -312,7 +316,7 @@ const stopSharing = () => {
 </Marker>*/}
 
 
-        {userPosition && (
+        {isSharing && userPosition && (
           <Marker position={userPosition} icon={customIcon}>
             <Popup>Estás acá</Popup>
           </Marker>
@@ -366,7 +370,7 @@ const stopSharing = () => {
     boxShadow: "0 2px 5px rgba(0,0,0,0.3)",
   }}
 >
-  {isSharing ? "🛑 Dejar de compartir" : "📍 Compartir ubicación"}
+  {isSharing ? "🚫 Dejar de compartir" : "🚩 Compartir ubicación"}
 </button>
 
 
