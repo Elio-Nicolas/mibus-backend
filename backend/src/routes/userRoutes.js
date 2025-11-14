@@ -7,9 +7,9 @@ const multer = require("multer");
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const cloudinary = require("../config/cloudinary");
 
-// =======================================
-// 🔧 Configuración de almacenamiento Cloudinary
-// =======================================
+
+// Configuración de almacenamiento Cloudinary
+
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
@@ -21,12 +21,11 @@ const storage = new CloudinaryStorage({
 
 const upload = multer({ storage });
 
-// =======================================
-// 🧩 Registro de nuevo usuario
-// =======================================
+// Registro de nuevo usuario
+
 router.post("/signup", upload.single("image"), async (req, res) => {
   const { username, password } = req.body;
-  const imagePath = req.file ? req.file.path : null; // 🔄 URL de Cloudinary
+  const imagePath = req.file ? req.file.path : null; //URL de Cloudinary
 
   console.log("Datos recibidos:");
   console.log("Username:", username);
@@ -51,14 +50,14 @@ router.post("/signup", upload.single("image"), async (req, res) => {
 
     res.status(201).json({ message: "Usuario creado correctamente" });
   } catch (err) {
-    console.error("❌ Error al registrar usuario:", err);
+    console.error("Error al registrar usuario:", err);
     res.status(500).json({ error: "No se pudo registrar el usuario" });
   }
 });
 
-// =======================================
-// 🔐 Inicio de sesión (login)
-// =======================================
+
+// Inicio de sesión (login)
+
 router.post("/signin", async (req, res) => {
   const { username, password } = req.body;
 
@@ -79,20 +78,20 @@ router.post("/signin", async (req, res) => {
       token,
       userId: user._id,
       username: user.username,
-      image: user.image, // 🔄 URL de Cloudinary
+      image: user.image, // URL de Cloudinary
     });
   } catch (err) {
-    console.error("❌ Error al iniciar sesión:", err);
+    console.error("Error al iniciar sesión:", err);
     res.status(500).json({ error: "Error en el servidor" });
   }
 });
 
-// =======================================
-// 🖼️ Actualizar perfil (nombre + imagen)
-// =======================================
+
+//Actualizar perfil (nombre + imagen)
+
 router.put("/upload/:id", upload.single("image"), async (req, res) => {
   const { username } = req.body;
-  const imagePath = req.file ? req.file.path : undefined; // 🔄 URL de Cloudinary
+  const imagePath = req.file ? req.file.path : undefined; //URL de Cloudinary
 
   try {
     const updates = {};
@@ -111,7 +110,7 @@ router.put("/upload/:id", upload.single("image"), async (req, res) => {
       user: updatedUser,
     });
   } catch (err) {
-    console.error("❌ Error al actualizar perfil:", err);
+    console.error("Error al actualizar perfil:", err);
     res.status(500).json({ error: "Error en el servidor" });
   }
 });

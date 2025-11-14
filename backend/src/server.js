@@ -40,6 +40,7 @@ const BusSchema = new mongoose.Schema({
 });
 const Bus = mongoose.model("Bus", BusSchema);
 
+/*
 // WebSocket
 io.on("connection", (socket) => {
   console.log("conectado");
@@ -58,6 +59,52 @@ setInterval(async () => {
   io.emit("busUpdate", buses);
   console.log(" Enviando datos a los clientes:", buses);
 }, 3000);*/
+
+//-------------------------------------------------------------
+// Compartir Ubicacion
+//-------------------------------------------------------------
+
+// Estado de si cada usuario está compartiendo o no su ubicación
+let sharingState = {}; 
+// sharingState[idDelUsuario] = true/false
+
+io.on("connection", (socket) => {
+  console.log("conectado");
+
+  // 1️⃣ El usuario comienza a compartir ubicación
+  socket.on("startSharing", (userId) => {
+    sharingState[userId] = true;
+    console.log(`📍 ${userId} comenzó a compartir`);
+  });
+
+  // 2️⃣ El usuario deja de compartir ubicación
+  socket.on("stopSharing", (userId) => {
+    sharingState[userId] = false;
+    console.log(`❌ ${userId} dejó de compartir`);
+  });
+
+  // 3️⃣ Recibimos una actualización de ubicación
+  socket.on("locationUpdate", async (data) => {
+    const { id, lat, lon } = data;
+
+    console.log(" Ubicación recibida:", data);
+
+    // Si el usuario apagó el compartir → NO guardamos ni reenviamos
+    if (!sharingState[id]) {
+      console.log(`⚠️ ${id} envió ubicación, pero tiene sharing OFF. Ignorada.`);
+      return;
+    }
+
+    // Guardar ubicación en Mongo
+    await Bus.findOneAndUpdate({ id }, data, { upsert: true });
+
+    // Enviar a todos los clientes
+    io.emit("busUpdate", await Bus.find({}));
+  });
+
+  socket.on("disconnect", () => console.log("desconectado"));
+});
+
 
 // Ruta REST única
 app.get("/buses", async (req, res) => {
