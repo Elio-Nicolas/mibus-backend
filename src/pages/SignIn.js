@@ -24,7 +24,7 @@ const SignIn = () => {
     }
 
     try {
-      const res = await fetch("https://mibus-frontend.onrender.com/api/users/signup", { //se cambio de 3001 a 4001
+      const res = await fetch("https://mibus-backend.onrender.com/api/users/signup", { //se cambio de 3001 a 4001
         method: "POST",
         headers: {
           "Content-Type": "application/json",
