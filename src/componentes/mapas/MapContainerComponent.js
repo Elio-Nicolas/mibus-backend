@@ -12,7 +12,9 @@ import ClimaWidget from "../clima/ClimaWidget";
 import "./Drawers.css";
 import io from "socket.io-client";
 
-const socket = io("https://mibus-backend.onrender.com"); //backend en Render
+
+//backend en Render
+const socket = io("https://mibus-backend.onrender.com"); 
 
 
 // Iconos
@@ -43,6 +45,8 @@ const SetViewToLocation = ({ position }) => {
 };
 
 const MapContainerComponent = () => {
+  const [isSharing, setIsSharing] = useState(false);
+  const watchIdRef = useRef(null);
   const [buses, setBuses] = useState([]);
   const [userPosition, setUserPosition] = useState(DEFAULT_POSITION);
   const [openDrawer, setOpenDrawer] = useState(false);
@@ -111,6 +115,63 @@ const MapContainerComponent = () => {
     return () => clearInterval(intervaloE.current);
   }, []);*/
  
+  //---------------------------------------------------------
+  // Estado de iniciar compartir Geolocalizacion
+  //---------------------------------------------------------
+  const startSharing = () => {
+    if (!("geolocation" in navigator)) {
+      alert("La geolocalización no está disponible");
+      return;
+    }
+
+    setIsSharing(true);
+
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        setUserPosition([latitude, longitude]);
+
+        const userId =
+        localStorage.getItem("userId") || sessionStorage.getItem("userId");
+        const username =
+        localStorage.getItem("username") ||
+        sessionStorage.getItem("username");
+
+       if (userId) {
+        socket.emit("updateLocation", {
+          userId,
+          username,
+          latitude,
+          longitude,
+        });
+      }
+    },
+    (err) => console.error("Error obteniendo ubicación:", err.message),
+    { enableHighAccuracy: true, maximumAge: 0 }
+  );
+};
+
+//--------------------------------------------------------------------
+//Estado dejar de copartir Geolocalizacion
+//--------------------------------------------------------------------
+
+const stopSharing = () => {
+  setIsSharing(false);
+
+  if (watchIdRef.current) {
+    navigator.geolocation.clearWatch(watchIdRef.current);
+  }
+
+  const userId =
+    localStorage.getItem("userId") || sessionStorage.getItem("userId");
+  const username =
+    localStorage.getItem("username") || sessionStorage.getItem("username");
+
+  // Avisar al servidor que deje de mostrarme
+  socket.emit("stopLocation", { userId, username });
+};
+
+/*
 // ---------------------------
 // Agregado para geolocalizar
 //----------------------------
@@ -140,7 +201,7 @@ const MapContainerComponent = () => {
     return () => navigator.geolocation.clearWatch(watchId);
   }
 }, []);
-
+*/
 
   const fetchBuses = async () => {
     try {
@@ -286,6 +347,28 @@ const MapContainerComponent = () => {
       >
         <MenuIcon fontSize="large" />
       </IconButton>
+      
+      {/* Boton para compartir geolocalizacion */}
+
+      <button
+  onClick={isSharing ? stopSharing : startSharing}
+  style={{
+    position: "fixed",
+    bottom: 20,
+    right: 20,
+    zIndex: 2000,
+    padding: "12px 20px",
+    backgroundColor: isSharing ? "red" : "green",
+    color: "white",
+    border: "none",
+    borderRadius: "10px",
+    fontSize: "16px",
+    boxShadow: "0 2px 5px rgba(0,0,0,0.3)",
+  }}
+>
+  {isSharing ? "🛑 Dejar de compartir" : "📍 Compartir ubicación"}
+</button>
+
 
       <Sidebar
         open={openDrawer}
