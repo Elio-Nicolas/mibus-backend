@@ -71,19 +71,26 @@ let sharingState = {};
 io.on("connection", (socket) => {
   console.log("conectado");
 
-  // 1️⃣ El usuario comienza a compartir ubicación
+  // El usuario comparte ubicación
   socket.on("startSharing", (userId) => {
     sharingState[userId] = true;
     console.log(`📍 ${userId} comenzó a compartir`);
   });
 
-  // 2️⃣ El usuario deja de compartir ubicación
-  socket.on("stopSharing", (userId) => {
-    sharingState[userId] = false;
-    console.log(`❌ ${userId} dejó de compartir`);
-  });
+  // El usuario deja de compartir ubicación
+socket.on("stopSharing", async (userId) => {
+  sharingState[userId] = false;
+  console.log(`❌ ${userId} dejó de compartir`);
 
-  // 3️⃣ Recibimos una actualización de ubicación
+  // 1. Borrar su ubicación de Mongo
+  await Bus.deleteOne({ id: userId });
+
+  // 2. Avisar a todos los clientes que el usuario apagó compartir
+  io.emit("userStopped", userId);
+});
+
+
+  // Recibimos una actualización de ubicación
   socket.on("locationUpdate", async (data) => {
     const { id, lat, lon } = data;
 
