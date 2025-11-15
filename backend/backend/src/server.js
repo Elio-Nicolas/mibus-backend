@@ -77,15 +77,15 @@ io.on("connection", (socket) => {
     console.log(`📍 ${userId} comenzó a compartir`);
   });
 
-  // El usuario deja de compartir ubicación
+  //usuario deja de compartir ubicación
 socket.on("stopSharing", async (userId) => {
   sharingState[userId] = false;
   console.log(`❌ ${userId} dejó de compartir`);
 
-  // 1. Borrar su ubicación de Mongo
+  //Borrar su ubicación de MongoDB
   await Bus.deleteOne({ id: userId });
 
-  // 2. Avisar a todos los clientes que el usuario apagó compartir
+  //Aviso a todos los clientes que el usuario apagó compartir
   io.emit("userStopped", userId);
 });
 

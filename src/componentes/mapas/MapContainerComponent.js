@@ -316,7 +316,7 @@ const stopSharing = () => {
 </Marker>*/}
 
 
-        {isSharing && userPosition && (
+        { userPosition && (
           <Marker position={userPosition} icon={customIcon}>
             <Popup>Estás acá</Popup>
           </Marker>
