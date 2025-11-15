@@ -80,7 +80,7 @@ io.on("connection", (socket) => {
   //usuario deja de compartir ubicación
 socket.on("stopSharing", async (userId) => {
   sharingState[userId] = false;
-  console.log(`❌ ${userId} dejó de compartir`);
+  console.log(`❌ ${userId} dejó de compartir`);  
 
   //Borrar su ubicación de MongoDB
   await Bus.deleteOne({ id: userId });

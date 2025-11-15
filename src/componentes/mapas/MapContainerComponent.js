@@ -164,7 +164,7 @@ const stopSharing = () => {
     navigator.geolocation.clearWatch(watchIdRef.current);
   }
 
-  setUserPosition(null);
+  //setUserPosition(null);
 
   const userId =
     localStorage.getItem("userId") || sessionStorage.getItem("userId");
@@ -315,8 +315,9 @@ const stopSharing = () => {
   <Popup>🚌 Línea E en movimiento</Popup>
 </Marker>*/}
 
+{/*falta el ishering &&  */}
 
-        { userPosition && (
+        { userPosition && (  
           <Marker position={userPosition} icon={customIcon}>
             <Popup>Estás acá</Popup>
           </Marker>
