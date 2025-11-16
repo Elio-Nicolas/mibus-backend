@@ -44,6 +44,26 @@ const SetViewToLocation = ({ position }) => {
   return null;
 };
 
+/* === NEW: createColoredIcon ===
+   Esta función genera un icono SVG con el color que venga desde el backend.
+   Pegarla arriba del componente para usarla en los Markers.
+*/
+const createColoredIcon = (color = "#007bff", shape = "circle") => {
+  const svg =
+    shape === "square"
+      ? `<rect x='4' y='4' width='32' height='32' rx='6' fill='${color}' stroke='black' stroke-width='2'/>`
+      : `<circle cx='20' cy='20' r='12' fill='${color}' stroke='black' stroke-width='2'/>`;
+
+  return new L.Icon({
+    iconUrl: `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40'>${svg}</svg>`,
+    iconSize: [40, 40],
+    iconAnchor: [20, 40],
+    popupAnchor: [0, -35],
+  });
+};
+/* === END NEW === */
+
+
 const MapContainerComponent = () => {
   const [isSharing, setIsSharing] = useState(false); // false = NO muestra la ubicación
   const [userPosition, setUserPosition] = useState(null);
@@ -117,9 +137,8 @@ const MapContainerComponent = () => {
     return () => clearInterval(intervaloE.current);
   }, []);*/
  
-  //---------------------------------------------------------
-  // Estado de iniciar compartir Geolocalizacion
-  //---------------------------------------------------------
+  /* === PATCH: startSharing (se mantiene envío igual pero renombramos a updateLocation payload
+        para que el backend lo reciba con los campos esperados) === */
   const startSharing = () => {
     if (!("geolocation" in navigator)) {
       alert("La geolocalización no está disponible");
@@ -134,46 +153,50 @@ const MapContainerComponent = () => {
         setUserPosition([latitude, longitude]);
 
         const userId =
-        localStorage.getItem("userId") || sessionStorage.getItem("userId");
-        const username =
-        localStorage.getItem("username") ||
-        sessionStorage.getItem("username");
+          localStorage.getItem("userId") || sessionStorage.getItem("userId");
+        const usernameLocal =
+          localStorage.getItem("username") || sessionStorage.getItem("username");
 
-       if (userId) {
-        socket.emit("updateLocation", {
-          userId,
-          username,
-          latitude,
-          longitude,
-        });
-      }
-    },
-    (err) => console.error("Error obteniendo ubicación:", err.message),
-    { enableHighAccuracy: true, maximumAge: 0 }
-  );
-};
+        if (userId) {
+          // Mantenemos el evento 'updateLocation' como ya lo usás
+          socket.emit("updateLocation", {
+            userId,
+            username: usernameLocal,
+            latitude,
+            longitude,
+          });
+        }
+      },
+      (err) => console.error("Error obteniendo ubicación:", err.message),
+      { enableHighAccuracy: true, maximumAge: 0 }
+    );
+  };
+  /* === END PATCH === */
 
 //--------------------------------------------------------------------
 //Estado dejar de copartir Geolocalizacion
 //--------------------------------------------------------------------
 
-const stopSharing = () => {
-  setIsSharing(false);
+/* === PATCH: stopSharing (no borramos userPosition; avisamos con evento 'stopLocation') === */
+  const stopSharing = () => {
+    setIsSharing(false);
 
-  if (watchIdRef.current) {
-    navigator.geolocation.clearWatch(watchIdRef.current);
-  }
+    if (watchIdRef.current) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+    }
 
-  //setUserPosition(null);
+    // IMPORTANTE: no borrar la posición local si querés que quede visible
+    // setUserPosition(null);
 
-  const userId =
-    localStorage.getItem("userId") || sessionStorage.getItem("userId");
-  const username =
-    localStorage.getItem("username") || sessionStorage.getItem("username");
+    const userId =
+      localStorage.getItem("userId") || sessionStorage.getItem("userId");
+    const usernameLocal =
+      localStorage.getItem("username") || sessionStorage.getItem("username");
 
-  // Avisar al servidor que deje de mostrarme
-  socket.emit("stopLocation", { userId, username });
-};
+    // En tu código original usabas 'stopLocation' — lo conservamos
+    socket.emit("stopLocation", { userId, username: usernameLocal });
+  };
+  /* === END PATCH === *///quede aca
 
 /*
 // ---------------------------
@@ -218,21 +241,52 @@ const stopSharing = () => {
     }
   };
 
-  // ---------------------------------------
-  // Colocado para rastrear Bus
-  // ---------------------------------------
-
+  /* === PATCH: socket listener
+       Escuchamos 'locationUpdate' (evento que enviará el backend con 1 usuario)
+       y actualizamos la lista conservando/actualizando el color y la posición.
+  */
   useEffect(() => {
-  socket.on("locationUpdate", (data) => {
-    setBuses((prev) => {
-      const updated = prev.filter((b) => b.userId !== data.userId);
-      return [...updated, data];
+    socket.on("locationUpdate", (data) => {
+      // data expected: { userId, username, latitude, longitude, color, shape }
+      setBuses((prev) => {
+        const updated = prev.filter((b) => b.userId !== data.userId);
+        return [...updated, {
+          userId: data.userId,
+          username: data.username,
+          latitude: data.latitude,
+          longitude: data.longitude,
+          color: data.color,
+          shape: data.shape,
+        }];
+      });
     });
-  });
 
-  return () => socket.off("locationUpdate");
-}, []);
+     // opcional: si backend emite lista completa con 'busList' (fallback)
+    socket.on("busList", (list) => {
+      // transform list if necessary
+      setBuses(list.map(doc => ({
+        userId: doc.userId || doc.id,
+        username: doc.username || "",
+        latitude: doc.latitude || doc.lat,
+        longitude: doc.longitude || doc.lon,
+        color: doc.color || "#007bff",
+        shape: doc.shape || "circle"
+      })));
+    });
 
+    // si el backend notifica que alguien dejó de compartir
+    socket.on("userStopped", (userId) => {
+      // decidimos NO eliminar, solo podríamos marcar 'offline' si quisiéramos
+      console.log("Usuario dejó de compartir:", userId);
+    });
+
+    return () => {
+      socket.off("locationUpdate");
+      socket.off("busList");
+      socket.off("userStopped");
+    };
+  }, []);
+  /* === END PATCH === */
 
   useEffect(() => {
     fetchBuses();
@@ -314,6 +368,7 @@ const stopSharing = () => {
 <Marker position={rutaE[posicionIndexE]} icon={colectivoIcon}>
   <Popup>🚌 Línea E en movimiento</Popup>
 </Marker>*/}
+
 
 {/*falta el ishering &&  */}
 

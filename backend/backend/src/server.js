@@ -3,129 +3,126 @@ const http = require("http");
 const socketIo = require("socket.io");
 const mongoose = require("mongoose");
 const cors = require("cors");
-const app = express();
 const path = require("path");
 
+const app = express();
 
-app.use("/uploads", express.static(path.join(__dirname, "uploads"))); //acceso a img desde el navegador
+/* ======================= MIDDLEWARE ======================= */
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use(cors());
+app.use(express.json());
 
-app.use(cors()); // Solo permite el acceso del FRONT  { origin: "http://localhost:4000" } <-- VA ESTO DENTRO DE ()
-
-app.use(express.json()); //  Parsear JSON
-
-app.use('/uploads', express.static('uploads'));
-
-
+/* ======================= SERVER + SOCKET.IO ======================= */
 const server = http.createServer(app);
 const io = socketIo(server, {
-  cors: { origin: "*" }, //http://localhost:4000 <-- VA ESTO DENTRO DE ""
+  cors: { origin: "*" }
 });
 
+/* ======================= ROUTES ======================= */
+const userRoutes = require("./routes/userRoutes");
+app.use("/api/users", userRoutes);
 
-const userRoutes = require("./routes/userRoutes"); //  importar
-app.use("/api/users", userRoutes);                 //  usar
+/* ======================= MONGO ======================= */
+mongoose.connect(
+  "mongodb+srv://baigorriaen83_db_user:5RnvPqIcXJq6h197@clustermibus.fc3bgtx.mongodb.net/?appName=ClusterMibus",
+  { useNewUrlParser: true, useUnifiedTopology: true }
+);
 
-// Conexión MongoDB
-mongoose.connect("mongodb+srv://baigorriaen83_db_user:5RnvPqIcXJq6h197@clustermibus.fc3bgtx.mongodb.net/?appName=ClusterMibus", {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
-
-// Esquema y modelo
+/* ======================= SCHEMA ======================= */
 const BusSchema = new mongoose.Schema({
-  id: String,
+  id: String,                // userId
+  username: String,
   lat: Number,
   lon: Number,
-  timestamp: { type: Date, default: Date.now },
+  color: String,            // Color único del usuario
+  shape: String,            // Futuro: forma del ícono
+  timestamp: { type: Date, default: Date.now }
 });
+
 const Bus = mongoose.model("Bus", BusSchema);
 
-/*
-// WebSocket
-io.on("connection", (socket) => {
-  console.log("conectado");
-
-  socket.on("locationUpdate", async (data) => {
-    console.log(" Ubicación recibida:", data);
-    await Bus.findOneAndUpdate({ id: data.id }, data, { upsert: true });
-  });
-
-  socket.on("disconnect", () => console.log("desconectado"));
-});
-/*
-//  Emitir datos cada 3 segundos
-setInterval(async () => {
-  const buses = await Bus.find({});
-  io.emit("busUpdate", buses);
-  console.log(" Enviando datos a los clientes:", buses);
-}, 3000);*/
-
-//-------------------------------------------------------------
-// Compartir Ubicacion
-//-------------------------------------------------------------
-
-// Estado de si cada usuario está compartiendo o no su ubicación
+/* ======================= ESTADO DE COMPARTIR ======================= */
 let sharingState = {}; 
-// sharingState[idDelUsuario] = true/false
+// sharingState[userId] = true/false
 
+/* ======================= SOCKET.IO ======================= */
 io.on("connection", (socket) => {
-  console.log("conectado");
+  console.log("🟢 Usuario conectado");
 
-  // El usuario comparte ubicación
+  /* --- Usuario comienza a compartir --- */
   socket.on("startSharing", (userId) => {
     sharingState[userId] = true;
     console.log(`📍 ${userId} comenzó a compartir`);
   });
 
-  //usuario deja de compartir ubicación
-socket.on("stopSharing", async (userId) => {
-  sharingState[userId] = false;
-  console.log(`❌ ${userId} dejó de compartir`);  
+  /* --- Usuario deja de compartir --- */
+  socket.on("stopSharing", async (userId) => {
+    sharingState[userId] = false;
+    console.log(`❌ ${userId} dejó de compartir`);
 
-  //Borrar su ubicación de MongoDB
-  await Bus.deleteOne({ id: userId });
+    // Borrar ubicación de Mongo
+    await Bus.deleteOne({ id: userId });
 
-  //Aviso a todos los clientes que el usuario apagó compartir
-  io.emit("userStopped", userId);
-});
+    // Avisar a todos que desaparece del mapa
+    io.emit("userStopped", userId);
+  });
 
-
-  // Recibimos una actualización de ubicación
+  /* --- Recibir ubicación (solo si está compartiendo) --- */
   socket.on("locationUpdate", async (data) => {
-    const { id, lat, lon } = data;
+    const { id, username, lat, lon } = data;
 
-    console.log(" Ubicación recibida:", data);
+    console.log("📡 Ubicación recibida:", data);
 
-    // Si el usuario apagó el compartir → NO guardamos ni reenviamos
     if (!sharingState[id]) {
-      console.log(`⚠️ ${id} envió ubicación, pero tiene sharing OFF. Ignorada.`);
+      console.log(`⚠️ Ubicación ignorada: ${id} tiene sharing OFF`);
       return;
     }
 
-    // Guardar ubicación en Mongo
-    await Bus.findOneAndUpdate({ id }, data, { upsert: true });
+    // Ver si el usuario ya existe
+    let existing = await Bus.findOne({ id });
 
-    // Enviar a todos los clientes
+    // Si no existe → asignar color único
+    if (!existing) {
+      data.color = "#" + Math.floor(Math.random() * 16777215).toString(16);
+      console.log(`🎨 Nuevo usuario → color asignado: ${data.color}`);
+    } else {
+      data.color = existing.color; // Mantener el mismo color
+    }
+
+    // Guardar en Mongo
+    await Bus.findOneAndUpdate(
+      { id },
+      data,
+      { upsert: true }
+    );
+
+    // Enviar lista actualizada
     io.emit("busUpdate", await Bus.find({}));
   });
 
-  socket.on("disconnect", () => console.log("desconectado"));
+  socket.on("disconnect", () => console.log("🔴 Usuario desconectado"));
 });
 
-
-// Ruta REST única
+/* ======================= RUTA REST ======================= */
 app.get("/buses", async (req, res) => {
   try {
-    const buses = await Bus.find({});
-    res.json(buses);
+    const docs = await Bus.find({});
+    const response = docs.map(doc => ({
+      userId: doc.id,
+      username: doc.username,
+      latitude: doc.lat,
+      longitude: doc.lon,
+      color: doc.color || "#007bff",
+      shape: doc.shape || "circle",
+      timestamp: doc.timestamp
+    }));
+    res.json(response);
   } catch (err) {
-    console.error(" Error al obtener Colectivos:", err);
+    console.error("❌ Error al obtener buses:", err);
     res.status(500).json({ error: "Error al obtener los buses" });
   }
 });
 
+/* ======================= START SERVER ======================= */
 const PORT = process.env.PORT || 4001;
 server.listen(PORT, () => console.log(`🚍 Backend corriendo en puerto ${PORT}`));
-
-
-
