@@ -1,5 +1,6 @@
+// MapContainerComponent.js  (REEMPLAZAR TU ARCHIVO COMPLETO)
 import { useEffect, useRef, useState } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap, /*Polyline*/ GeoJSON } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMap, GeoJSON } from "react-leaflet";
 import L from "leaflet";
 import { IconButton } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
@@ -12,12 +13,18 @@ import ClimaWidget from "../clima/ClimaWidget";
 import "./Drawers.css";
 import io from "socket.io-client";
 
+// ===================== CONFIG SOCKET =====================
+const socket = io("https://mibus-backend.onrender.com"); // tu backend en Render
 
-//backend en Render
-const socket = io("https://mibus-backend.onrender.com"); 
+// ===================== ICONOS =============================
 
+const userIcon = new L.Icon({
+            iconUrl: "https://cdn-icons-png.flaticon.com/512/64/64113.png",
+            iconSize: [35, 35],
+            iconAnchor: [17, 35],
+            popupAnchor: [0, -30],
+            });
 
-// Iconos
 const customIcon = new L.Icon({
   iconUrl: markerIcon,
   shadowUrl: markerShadow,
@@ -27,6 +34,7 @@ const customIcon = new L.Icon({
   shadowSize: [45, 45],
 });
 
+// ícono por defecto (si necesitás)
 const colectivoIcon = new L.Icon({
   iconUrl: "https://cdn-icons-png.flaticon.com/512/296/296216.png",
   iconSize: [40, 40],
@@ -45,8 +53,8 @@ const SetViewToLocation = ({ position }) => {
 };
 
 /* === NEW: createColoredIcon ===
-   Esta función genera un icono SVG con el color que venga desde el backend.
-   Pegarla arriba del componente para usarla en los Markers.
+   Genera un ícono SVG dinámico con color y forma.
+   (Usalo en los Markers: icon={createColoredIcon(bus.color, bus.shape)})
 */
 const createColoredIcon = (color = "#007bff", shape = "circle") => {
   const svg =
@@ -63,21 +71,19 @@ const createColoredIcon = (color = "#007bff", shape = "circle") => {
 };
 /* === END NEW === */
 
-
 const MapContainerComponent = () => {
-  const [isSharing, setIsSharing] = useState(false); // false = NO muestra la ubicación
+  const [isSharing, setIsSharing] = useState(false);
   const [userPosition, setUserPosition] = useState(null);
- // const [isSharing, setIsSharing] = useState(false);
   const watchIdRef = useRef(null);
-  const [buses, setBuses] = useState([]);
- // const [userPosition, setUserPosition] = useState(DEFAULT_POSITION);
+  const [buses, setBuses] = useState([]); // aquí almacenamos los usuarios mostrados en el mapa
   const [openDrawer, setOpenDrawer] = useState(false);
   const [openLineasDrawer, setOpenLineasDrawer] = useState(false);
   const [mostrarClima, setMostrarClima] = useState(false);
- // const [posicionIndex, setPosicionIndex] = useState(0);
-  //const intervaloRef = useRef(null);
   const [selectedLinea, setSelectedLinea] = useState(null);
   const [paradasData, setParadasData] = useState(null);
+
+
+  // === USER INFO (username) ===
   const [username, setUsername] = useState(
     localStorage.getItem("username") || sessionStorage.getItem("username") || "Desconocido"
   );
@@ -85,60 +91,27 @@ const MapContainerComponent = () => {
     localStorage.getItem("image") || sessionStorage.getItem("image") || ""
   );
 
-  // === RUTA LÍNEA A ===
-/*  const rutaColectivo = [
-    [-33.675013, -65.461921], [-33.674815, -65.463013], [-33.675660, -65.463276],
-    [-33.675899, -65.462208], [-33.676837, -65.462482], [-33.677760, -65.462771],
-    [-33.678644, -65.463029], [-33.679514, -65.463302], [-33.680398, -65.463592],
-    [-33.681291, -65.463827], [-33.681551, -65.462801], [-33.680661, -65.462512],
-    [-33.679752, -65.462244], [-33.678862, -65.461977], [-33.677962, -65.461698],
-    [-33.678194, -65.460662], [-33.678416, -65.459570], [-33.677500, -65.459313],
-    [-33.676599, -65.459083], [-33.675718, -65.458785], [-33.675470, -65.459864],
-    [-33.675238, -65.460923], [-33.674387, -65.460626], [-33.673474, -65.460347],
-    [-33.673258, -65.461425], [-33.674140, -65.461704], [-33.675037, -65.461927],
-  ];
+  /* === CRITICAL: asegurar que exista un userId único por dispositivo ===
+     Si no existe en localStorage/sessionStorage, lo creamos (crypto.randomUUID o fallback).
+     Esto evita que PC y teléfono compartan el mismo ID.
+  */
+  const [storedUserId, setStoredUserId] = useState(() => {
+    let id = localStorage.getItem("userId") || sessionStorage.getItem("userId");
+    if (!id) {
+      // navegador moderno: crypto.randomUUID(); fallback simple si no disponible:
+      id = (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID() : `id-${Date.now()}-${Math.floor(Math.random()*10000)}`;
+      localStorage.setItem("userId", id);
+      sessionStorage.setItem("userId", id);
+    }
+    return id;
+  });
 
-  // === RUTA LÍNEA E ===
-/*  const rutaE = [
-    [-33.6651913, -65.4670209], [-33.6662841, -65.4663497], [-33.6680972, -65.4668634],
-    [-33.6962395, -65.4391506], [-33.6951245, -65.4395466], [-33.6940188, -65.4436722],
-    [-33.6983936, -65.445129], [-33.6991048, -65.4462966], [-33.6972608, -65.4469344],
-    [-33.6966449, -65.4489648], [-33.695683, -65.4498822], [-33.6909218, -65.4495196],
-    [-33.6921784, -65.4488554], [-33.6902046, -65.4527185], [-33.6897671, -65.4548195],
-    [-33.6910671, -65.4575691], [-33.6905749, -65.4598676], [-33.690116, -65.4618117],
-    [-33.6896777, -65.4639592], [-33.6891855, -65.4662823], [-33.6887112, -65.4684267],
-    [-33.6884889, -65.4705195], [-33.6894495, -65.4697976], [-33.6899139, -65.4676587],
-    [-33.6902381, -65.4652579], [-33.6885091, -65.4647386], [-33.6858575, -65.4639666],
-    [-33.684091, -65.4634314], [-33.682301, -65.4628869], [-33.6805065, -65.4623666],
-    [-33.6787276, -65.4618462], [-33.6771696, -65.4613849], [-33.675125, -65.4607733],
-    [-33.6733259, -65.4602369], [-33.6715535, -65.4597246], [-33.6697476, -65.4591774],
-    [-33.6679685, -65.458649], [-33.6661715, -65.4581072], [-33.6643923, -65.4575735],
-    [-33.6639436, -65.4562082], [-33.6644124, -65.4540973], [-33.6580431, -65.4528259],
-    [-33.6562503, -65.4522466], [-33.6536545, -65.4513882], [-33.6485684, -65.4497379],
-    [-33.6437099, -65.4485877],
-  ]; */
-
- /*const [posicionIndexA, setPosicionIndexA] = useState(0);
-  const [posicionIndexE, setPosicionIndexE] = useState(0);
-  const intervaloA = useRef(null);
-  const intervaloE = useRef(null);
-*/
-  /*useEffect(() => {
-    intervaloA.current = setInterval(() => {
-    setPosicionIndexA((prev) => (prev + 1) % rutaColectivo.length);
-    }, 2700);
-    return () => clearInterval(intervaloA.current);
-  }, []);
-
-  /*useEffect(() => {
-    intervaloE.current = setInterval(() => {
-      setPosicionIndexE((prev) => (prev + 1) % rutaE.length);
-    }, 2700);
-    return () => clearInterval(intervaloE.current);
-  }, []);*/
- 
-  /* === PATCH: startSharing (se mantiene envío igual pero renombramos a updateLocation payload
-        para que el backend lo reciba con los campos esperados) === */
+  /* ==== START SHARING ====
+     - Solicita geolocalización
+     - Actualiza userPosition local
+     - Emite event 'locationUpdate' (payload con nombres que el backend espera: id, username, lat, lon)
+     - También emite 'startSharing' para marcar el estado en el backend (opcional)
+  */
   const startSharing = () => {
     if (!("geolocation" in navigator)) {
       alert("La geolocalización no está disponible");
@@ -147,132 +120,93 @@ const MapContainerComponent = () => {
 
     setIsSharing(true);
 
+    // avisar al backend que empezamos a compartir (opcional, pero útil)
+    socket.emit("startSharing", storedUserId);
+
     watchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
         const { latitude, longitude } = pos.coords;
         setUserPosition([latitude, longitude]);
 
-        const userId =
-          localStorage.getItem("userId") || sessionStorage.getItem("userId");
-        const usernameLocal =
-          localStorage.getItem("username") || sessionStorage.getItem("username");
-
-        if (userId) {
-          // Mantenemos el evento 'updateLocation' como ya lo usás
-          socket.emit("updateLocation", {
-            id: userId,                       // 🔥 back espera "id"
-            username: usernameLocal,
-            lat: latitude,                    // 🔥 back espera "lat"
-            lon: longitude,                   // 🔥 back espera "lon"
-          });
-        }
+        // Enviamos LO QUE EL BACKEND ESPERA: id, username, lat, lon
+        socket.emit("locationUpdate", {
+          id: storedUserId,
+          username,
+          lat: latitude,
+          lon: longitude,
+        });
       },
       (err) => console.error("Error obteniendo ubicación:", err.message),
       { enableHighAccuracy: true, maximumAge: 0 }
     );
   };
-  /* === END PATCH === */
 
-//--------------------------------------------------------------------
-//Estado dejar de copartir Geolocalizacion
-//--------------------------------------------------------------------
-
-/* === PATCH: stopSharing (no borramos userPosition; avisamos con evento 'stopLocation') === */
+  /* ==== STOP SHARING ====
+     - Detiene geolocalización
+     - Emite 'stopSharing' con el userId (backend decide si borrar o marcar offline)
+     - NO borramos la posición local (si querés que desaparezca, descomentá setUserPosition(null))
+  */
   const stopSharing = () => {
     setIsSharing(false);
 
     if (watchIdRef.current) {
       navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
     }
 
-    // IMPORTANTE: no borrar la posición local si querés que quede visible
+    // opcionalmente borrar posición local:
     // setUserPosition(null);
 
-    const userId =
-      localStorage.getItem("userId") || sessionStorage.getItem("userId");
-    const usernameLocal =
-      localStorage.getItem("username") || sessionStorage.getItem("username");
-
-    // En tu código original usabas 'stopLocation' — lo conservamos
-    socket.emit("stopLocation", { userId, username: usernameLocal });
+    socket.emit("stopSharing", storedUserId);
   };
-  /* === END PATCH === *///quede aca
 
-/*
-// ---------------------------
-// Agregado para geolocalizar
-//----------------------------
-  useEffect(() => {
-  if ("geolocation" in navigator) {
-    const watchId = navigator.geolocation.watchPosition(
-      (pos) => {
-        const { latitude, longitude } = pos.coords;
-        setUserPosition([latitude, longitude]);
-
-        const userId = localStorage.getItem("userId") || sessionStorage.getItem("userId");
-        const username = localStorage.getItem("username") || sessionStorage.getItem("username");
-
-        if (userId) {
-          socket.emit("updateLocation", {
-            userId,
-            username,
-            latitude,
-            longitude,
-          });
-        }
-      },
-      (error) => console.error("Error obteniendo ubicación:", error.message),
-      { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
-    );
-
-    return () => navigator.geolocation.clearWatch(watchId);
-  }
-}, []);
-*/
-
+  // === FETCH INITIAL (ruta REST /buses) ===
   const fetchBuses = async () => {
     try {
       const response = await fetch("https://mibus-backend.onrender.com/buses");
       if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
       const data = await response.json();
+      // data esperado: array de { userId, username, latitude, longitude, color, shape }
       setBuses(data);
     } catch (error) {
       console.error("Error obteniendo buses:", error);
     }
   };
 
-  /* === PATCH: socket listener
-       Escuchamos 'locationUpdate' (evento que enviará el backend con 1 usuario)
-       y actualizamos la lista conservando/actualizando el color y la posición.
+  /* === SOCKET LISTENERS ===
+     - Escuchamos 'busUpdate' (lista completa o parcial) enviado por el backend
+     - Escuchamos 'userStopped' para remover usuarios que dejan de compartir (si así lo querés)
   */
- /* === FIX: escuchar el evento correcto "busUpdate" === */
-useEffect(() => {
-  socket.on("busUpdate", (list) => {
-    console.log("📡 Lista actualizada desde backend:", list);
+  useEffect(() => {
+    socket.on("busUpdate", (list) => {
+      // backend puede enviar lista de documentos (con doc.id, doc.lat, etc)
+      // normalizamos a la forma que usa el frontend
+      try {
+        setBuses(
+          list.map((doc) => ({
+            userId: doc.id || doc.userId,
+            username: doc.username || doc.user,
+            latitude: doc.lat ?? doc.latitude,
+            longitude: doc.lon ?? doc.longitude,
+            color: doc.color || "#007bff",
+            shape: doc.shape || "circle",
+          }))
+        );
+      } catch (err) {
+        console.error("Error mapeando busUpdate:", err, list);
+      }
+    });
 
-    setBuses(
-      list.map((doc) => ({
-        userId: doc.id,
-        username: doc.username,
-        latitude: doc.lat,
-        longitude: doc.lon,
-        color: doc.color,
-        shape: doc.shape,
-      }))
-    );
-  });
+    socket.on("userStopped", (userId) => {
+      // opcional: eliminar del array para que desaparezca del mapa
+      setBuses((prev) => prev.filter((b) => b.userId !== userId));
+    });
 
-  socket.on("userStopped", (userId) => {
-    console.log("❌ Usuario dejó de compartir:", userId);
-    setBuses((prev) => prev.filter((b) => b.userId !== userId));
-  });
-
-  return () => {
-    socket.off("busUpdate");
-    socket.off("userStopped");
-  };
-}, []);
-/* === END FIX === */
+    return () => {
+      socket.off("busUpdate");
+      socket.off("userStopped");
+    };
+  }, []);
 
   useEffect(() => {
     fetchBuses();
@@ -316,12 +250,12 @@ useEffect(() => {
       .catch((err) => console.error("Error cargando GeoJSON:", err));
   }, []);
 
+  // ======================== RENDER ========================
   return (
     <div style={{ position: "relative", height: "100vh", width: "100vw", overflow: "hidden" }}>
       {/* MAPA */}
       <MapContainer center={DEFAULT_POSITION} zoom={17} style={{ height: "100%", width: "100%" }}>
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap contributors" />
-       {/* <Polyline positions={rutaColectivo} color="blue" /> */}
 
         {selectedLinea === "A" && paradasData && (
           <GeoJSON
@@ -343,43 +277,28 @@ useEffect(() => {
           />
         )}
 
-        {/* Línea A 
-<Polyline positions={rutaColectivo} color="blue" />
-<Marker position={rutaColectivo[posicionIndexA]} icon={colectivoIcon}>
-  <Popup>🚌 Línea A en movimiento</Popup>
-</Marker>
-
-{/* Línea E 
-<Polyline positions={rutaE} color="green" />
-<Marker position={rutaE[posicionIndexE]} icon={colectivoIcon}>
-  <Popup>🚌 Línea E en movimiento</Popup>
-</Marker>*/}
-
-
-{/*falta el ishering &&  */}
-
-        { userPosition && (  
-          <Marker position={userPosition} icon={customIcon}>
+        {/* Tu marcador (local) */}
+        {userPosition && (
+          <Marker position={userPosition} icon={userIcon}>
             <Popup>Estás acá</Popup>
           </Marker>
         )}
 
         <SetViewToLocation position={userPosition} />
 
+        {/* Marcadores de otros usuarios (PERSONAS) */}
         {buses.map((bus) => (
-  <Marker
-    key={bus.userId}
-    position={[bus.latitude, bus.longitude]}
-    icon={createColoredIcon(bus.color, bus.shape)}
-
-  >
-    <Popup>🚌 {bus.username}</Popup>
-  </Marker>
-))}
-
+          <Marker
+            key={bus.userId}
+            position={[bus.latitude, bus.longitude]}
+            icon={createColoredIcon(bus.color, bus.shape)}
+          >
+            <Popup>{bus.username || bus.userId}</Popup>
+          </Marker>
+        ))}
       </MapContainer>
 
-      {/* BOTÓN Y DRAWERS FIJOS EN PANTALLA */}
+      {/* BOTÓN Y DRAWERS */}
       <IconButton
         onClick={() => setOpenDrawer(true)}
         style={{
@@ -394,28 +313,25 @@ useEffect(() => {
       >
         <MenuIcon fontSize="large" />
       </IconButton>
-      
-      {/* Boton para compartir geolocalizacion */}
 
       <button
-  onClick={isSharing ? stopSharing : startSharing}
-  style={{
-    position: "fixed",
-    bottom: 20,
-    right: 20,
-    zIndex: 2000,
-    padding: "12px 20px",
-    backgroundColor: isSharing ? "red" : "green",
-    color: "white",
-    border: "none",
-    borderRadius: "10px",
-    fontSize: "16px",
-    boxShadow: "0 2px 5px rgba(0,0,0,0.3)",
-  }}
->
-  {isSharing ? "🚫 Dejar de compartir" : "🚩 Compartir ubicación"}
-</button>
-
+        onClick={isSharing ? stopSharing : startSharing}
+        style={{
+          position: "fixed",
+          bottom: 20,
+          right: 20,
+          zIndex: 2000,
+          padding: "12px 20px",
+          backgroundColor: isSharing ? "red" : "green",
+          color: "white",
+          border: "none",
+          borderRadius: "10px",
+          fontSize: "16px",
+          boxShadow: "0 2px 5px rgba(0,0,0,0.3)",
+        }}
+      >
+        {isSharing ? "🚫 Dejar de compartir" : "🚩 Compartir ubicación"}
+      </button>
 
       <Sidebar
         open={openDrawer}
