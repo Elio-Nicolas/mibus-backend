@@ -57,13 +57,17 @@ const SetViewToLocation = ({ position }) => {
    (Usalo en los Markers: icon={createColoredIcon(bus.color, bus.shape)})
 */
 const createColoredIcon = (color = "#007bff", shape = "circle") => {
-  const svg =
+  const svgInner =
     shape === "square"
-      ? `<rect x='4' y='4' width='32' height='32' rx='6' fill='${color}' stroke='black' stroke-width='2'/>`
-      : `<circle cx='20' cy='20' r='12' fill='${color}' stroke='black' stroke-width='2'/>`;
+      ? `<rect x="4" y="4" width="32" height="32" rx="6" fill="${color}" stroke="black" stroke-width="2"/>`
+      : `<circle cx="20" cy="20" r="12" fill="${color}" stroke="black" stroke-width="2"/>`;
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40">${svgInner}</svg>`;
+
+  const encoded = encodeURIComponent(svg); // <- la clave: encodear
 
   return new L.Icon({
-    iconUrl: `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40'>${svg}</svg>`,
+    iconUrl: `data:image/svg+xml;charset=UTF-8,${encoded}`,
     iconSize: [40, 40],
     iconAnchor: [20, 40],
     popupAnchor: [0, -35],
