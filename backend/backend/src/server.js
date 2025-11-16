@@ -90,11 +90,21 @@ io.on("connection", (socket) => {
     }
 
     // Guardar en Mongo
-    await Bus.findOneAndUpdate(
-      { id },
-      data,
-      { upsert: true }
-    );
+    /* === FIX: guardar con campos correctos === */
+await Bus.findOneAndUpdate(
+  { id },
+  {
+    id,
+    username,
+    lat,
+    lon,
+    color: data.color,
+    shape: "circle"
+  },
+  { upsert: true }
+);
+/* === END FIX === */
+
 
     // Enviar lista actualizada
     io.emit("busUpdate", await Bus.find({}));

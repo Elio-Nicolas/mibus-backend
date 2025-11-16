@@ -160,10 +160,10 @@ const MapContainerComponent = () => {
         if (userId) {
           // Mantenemos el evento 'updateLocation' como ya lo usás
           socket.emit("updateLocation", {
-            userId,
+            id: userId,                       // 🔥 back espera "id"
             username: usernameLocal,
-            latitude,
-            longitude,
+            lat: latitude,                    // 🔥 back espera "lat"
+            lon: longitude,                   // 🔥 back espera "lon"
           });
         }
       },
@@ -245,48 +245,34 @@ const MapContainerComponent = () => {
        Escuchamos 'locationUpdate' (evento que enviará el backend con 1 usuario)
        y actualizamos la lista conservando/actualizando el color y la posición.
   */
-  useEffect(() => {
-    socket.on("locationUpdate", (data) => {
-      // data expected: { userId, username, latitude, longitude, color, shape }
-      setBuses((prev) => {
-        const updated = prev.filter((b) => b.userId !== data.userId);
-        return [...updated, {
-          userId: data.userId,
-          username: data.username,
-          latitude: data.latitude,
-          longitude: data.longitude,
-          color: data.color,
-          shape: data.shape,
-        }];
-      });
-    });
+ /* === FIX: escuchar el evento correcto "busUpdate" === */
+useEffect(() => {
+  socket.on("busUpdate", (list) => {
+    console.log("📡 Lista actualizada desde backend:", list);
 
-     // opcional: si backend emite lista completa con 'busList' (fallback)
-    socket.on("busList", (list) => {
-      // transform list if necessary
-      setBuses(list.map(doc => ({
-        userId: doc.userId || doc.id,
-        username: doc.username || "",
-        latitude: doc.latitude || doc.lat,
-        longitude: doc.longitude || doc.lon,
-        color: doc.color || "#007bff",
-        shape: doc.shape || "circle"
-      })));
-    });
+    setBuses(
+      list.map((doc) => ({
+        userId: doc.id,
+        username: doc.username,
+        latitude: doc.lat,
+        longitude: doc.lon,
+        color: doc.color,
+        shape: doc.shape,
+      }))
+    );
+  });
 
-    // si el backend notifica que alguien dejó de compartir
-    socket.on("userStopped", (userId) => {
-      // decidimos NO eliminar, solo podríamos marcar 'offline' si quisiéramos
-      console.log("Usuario dejó de compartir:", userId);
-    });
+  socket.on("userStopped", (userId) => {
+    console.log("❌ Usuario dejó de compartir:", userId);
+    setBuses((prev) => prev.filter((b) => b.userId !== userId));
+  });
 
-    return () => {
-      socket.off("locationUpdate");
-      socket.off("busList");
-      socket.off("userStopped");
-    };
-  }, []);
-  /* === END PATCH === */
+  return () => {
+    socket.off("busUpdate");
+    socket.off("userStopped");
+  };
+}, []);
+/* === END FIX === */
 
   useEffect(() => {
     fetchBuses();
@@ -384,7 +370,8 @@ const MapContainerComponent = () => {
   <Marker
     key={bus.userId}
     position={[bus.latitude, bus.longitude]}
-    icon={colectivoIcon}
+    icon={createColoredIcon(bus.color, bus.shape)}
+
   >
     <Popup>🚌 {bus.username}</Popup>
   </Marker>
