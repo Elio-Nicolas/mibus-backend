@@ -116,34 +116,60 @@ const MapContainerComponent = () => {
      - Emite event 'locationUpdate' (payload con nombres que el backend espera: id, username, lat, lon)
      - También emite 'startSharing' para marcar el estado en el backend (opcional)
   */
-  const startSharing = () => {
-    if (!("geolocation" in navigator)) {
-      alert("La geolocalización no está disponible");
-      return;
+const startSharing = () => {
+  if (!("geolocation" in navigator)) {
+    alert("La geolocalización no está disponible");
+    return;
+  }
+
+  setIsSharing(true);
+  socket.emit("startSharing", storedUserId);
+
+  let retries = 0;
+
+  watchIdRef.current = navigator.geolocation.watchPosition(
+    (pos) => {
+      const { latitude, longitude, accuracy } = pos.coords;
+
+      console.log("➡ Precisión recibida:", accuracy, "metros");
+
+      // Si la precisión es mala → avisamos y no enviamos nada
+      if (accuracy > 100) {
+        console.warn("⚠ Ubicación imprecisa (posible por IP). Reintentando…");
+
+        retries++;
+        if (retries === 1) {
+          alert(
+            "⚠ No se puede obtener tu ubicación precisa.\n" +
+              "Activa GPS / alta precisión para evitar errores."
+          );
+        }
+
+        return; // no actualizar mapa ni backend
+      }
+
+      // Si llega acá → ubicación válida
+      retries = 0;
+
+      const newPosition = [latitude, longitude];
+      setUserPosition(newPosition);
+
+      socket.emit("locationUpdate", {
+        id: storedUserId,
+        username,
+        lat: latitude,
+        lon: longitude,
+      });
+    },
+    (err) => console.error("Error obteniendo ubicación:", err.message),
+    {
+      enableHighAccuracy: true,
+      timeout: 7000,
+      maximumAge: 0,
     }
+  );
+};
 
-    setIsSharing(true);
-
-    // avisar al backend que empezamos a compartir (opcional, pero útil)
-    socket.emit("startSharing", storedUserId);
-
-    watchIdRef.current = navigator.geolocation.watchPosition(
-      (pos) => {
-        const { latitude, longitude } = pos.coords;
-        setUserPosition([latitude, longitude]);
-
-        // Enviamos LO QUE EL BACKEND ESPERA: id, username, lat, lon
-        socket.emit("locationUpdate", {
-          id: storedUserId,
-          username,
-          lat: latitude,
-          lon: longitude,
-        });
-      },
-      (err) => console.error("Error obteniendo ubicación:", err.message),
-      { enableHighAccuracy: true, maximumAge: 0 }
-    );
-  };
 
   /* ==== STOP SHARING ====
      - Detiene geolocalización
