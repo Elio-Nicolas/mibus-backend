@@ -107,7 +107,16 @@ await Bus.findOneAndUpdate(
 
 
     // Enviar lista actualizada
-    io.emit("busUpdate", await Bus.find({}));
+    const buses = await Bus.find({});
+    io.emit("busUpdate", buses.map(bus => ({
+    userId: bus.id,
+    username: bus.username,
+    latitude: bus.lat,
+    longitude: bus.lon,
+    color: bus.color,
+    shape: bus.shape
+   })));
+
   });
 
   socket.on("disconnect", () => console.log("🔴 Usuario desconectado"));
