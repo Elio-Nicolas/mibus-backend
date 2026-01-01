@@ -71,7 +71,7 @@ const LineasDrawer = ({ open, onClose, buses = [], onLineaSelect }) => {
                 fontSize: 16,
                 background: "green",
                 opacity: 0.8,
-                color: "#fff",
+                color: "rgba(169, 213, 238, 0.8)",
               }}
               onClick={() => onLineaSelect(linea)}
             >

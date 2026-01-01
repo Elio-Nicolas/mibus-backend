@@ -41,7 +41,7 @@ const SignIn = () => {
         localStorage.setItem("token", data.token); // Guardamos el token
         localStorage.setItem("user", JSON.stringify(data.user));
         localStorage.setItem("userId", data.userId);
-        alert("Usuario registrado correctamente");
+        alert("USUARIO REGISTRADO ✔️");
         navigate("/mapa"); // Redirigir a ruta protegida
       } else {
         alert("Error: " + data.error);

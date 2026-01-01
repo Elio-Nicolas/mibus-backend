@@ -34,7 +34,7 @@ const Sidebar = ({
       }}
     >
       <div style={{ width: 250, padding: 16 }}>
-        <Typography variant="h6">🚌 Buses en tiempo real</Typography>
+        <Typography variant="h7">    🚌    VILLA MERCEDES SL </Typography>
 
         {/* Avatar + nombre de usuario */}
         <div style={{ textAlign: "center", marginTop: 20 }}>

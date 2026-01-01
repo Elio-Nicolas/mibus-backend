@@ -4,8 +4,8 @@ import { MapContainer, TileLayer, Marker, Popup, useMap, GeoJSON } from "react-l
 import L from "leaflet";
 import { IconButton } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
-import markerIcon from "leaflet/dist/images/marker-icon.png";
-import markerShadow from "leaflet/dist/images/marker-shadow.png";
+//import markerIcon from "leaflet/dist/images/marker-icon.png";
+//import markerShadow from "leaflet/dist/images/marker-shadow.png";
 import Sidebar from "./Sidebar";
 import LineasDrawer from "./LineasDrawer";
 import ClimaDrawer from "./ClimaDrawer";
@@ -14,33 +14,29 @@ import "./Drawers.css";
 import io from "socket.io-client";
 
 // ===================== CONFIG SOCKET =====================
-const socket = io("https://mibus-backend.onrender.com"); // tu backend en Render
+//const socket = io("https://mibus-backend.onrender.com"); // backend en Render
+const socket = io("https://mibus-backend.onrender.com", {
+  transports: ["websocket"],
+});
+
 
 // ===================== ICONOS =============================
-
-const userIcon = new L.Icon({
-            iconUrl: "https://cdn-icons-png.flaticon.com/512/64/64113.png",
-            iconSize: [35, 35],
-            iconAnchor: [17, 35],
-            popupAnchor: [0, -30],
-            });
-
-const customIcon = new L.Icon({
-  iconUrl: markerIcon,
-  shadowUrl: markerShadow,
-  iconSize: [30, 45],
-  iconAnchor: [15, 45],
-  popupAnchor: [0, -45],
-  shadowSize: [45, 45],
+const userIcon = new L.DivIcon({
+  html: `
+    <div style="
+      width: 20px; 
+      height: 20px; 
+      background: #007bff; 
+      border-radius: 50%; 
+      border: 3px solid white;
+      box-shadow: 0 0 6px rgba(0,0,0,0.4);
+    ">
+    </div>
+  `,
+  className: "",
+  iconSize: [20, 20],
 });
 
-// ícono por defecto (si necesitás)
-const colectivoIcon = new L.Icon({
-  iconUrl: "https://cdn-icons-png.flaticon.com/512/296/296216.png",
-  iconSize: [40, 40],
-  iconAnchor: [20, 40],
-  popupAnchor: [0, -40],
-});
 
 const DEFAULT_POSITION = [-33.6756, -65.4578];
 
@@ -52,10 +48,27 @@ const SetViewToLocation = ({ position }) => {
   return null;
 };
 
+
+const getRoleFromToken = () => {
+  const token =
+    localStorage.getItem("token") ||
+    sessionStorage.getItem("token");
+
+  if (!token) return null;
+
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return payload.role || null;
+  } catch {
+    return null;
+  }
+};
+
+
 /* === NEW: createColoredIcon ===
    Genera un ícono SVG dinámico con color y forma.
    (Usalo en los Markers: icon={createColoredIcon(bus.color, bus.shape)})
-*/
+
 const createColoredIcon = (color = "#007bff", shape = "circle") => {
   const svgInner =
     shape === "square"
@@ -73,6 +86,28 @@ const createColoredIcon = (color = "#007bff", shape = "circle") => {
     popupAnchor: [0, -35],
   });
 };
+*/
+
+// ================= ICONO UNIDAD / COLECTIVO =================
+const createBusIcon = (color = "#007bff") => {
+  return L.divIcon({
+    className: "bus-icon",
+    html: `
+      <div style="
+        width: 16px;
+        height: 16px;
+        background: ${color};
+        border-radius: 50%;
+        border: 2px solid white;
+        box-shadow: 0 0 4px rgba(0,0,0,0.5);
+      "></div>
+    `,
+    iconSize: [16, 16],
+    iconAnchor: [8, 8],
+  });
+};
+
+
 /* === END NEW === */
 
 const MapContainerComponent = () => {
@@ -85,6 +120,18 @@ const MapContainerComponent = () => {
   const [mostrarClima, setMostrarClima] = useState(false);
   const [selectedLinea, setSelectedLinea] = useState(null);
   const [paradasData, setParadasData] = useState(null);
+  const lastPositionRef = useRef(null);
+  
+  // === ESTADO GPS (PRECISIÓN Y FUENTE) ===
+  const [gpsInfo, setGpsInfo] = useState({
+   accuracy: null,
+   source: "desconocida",
+  });
+
+  // === SELECCIONA UNIDAD ===
+  const [selectedUnit, setSelectedUnit] = useState(
+  localStorage.getItem("unitId") || ""
+);
 
 
   // === USER INFO (username) ===
@@ -95,7 +142,13 @@ const MapContainerComponent = () => {
     localStorage.getItem("image") || sessionStorage.getItem("image") || ""
   );
 
-  /* === CRITICAL: asegurar que exista un userId único por dispositivo ===
+  const role =
+  getRoleFromToken() ||
+  sessionStorage.getItem("role") ||
+  "PASAJERO";
+
+
+  /* === CRITICO: asegurar que exista un userId único por dispositivo ===
      Si no existe en localStorage/sessionStorage, lo creamos (crypto.randomUUID o fallback).
      Esto evita que PC y teléfono compartan el mismo ID.
   */
@@ -103,7 +156,8 @@ const MapContainerComponent = () => {
     let id = localStorage.getItem("userId") || sessionStorage.getItem("userId");
     if (!id) {
       // navegador moderno: crypto.randomUUID(); fallback simple si no disponible:
-      id = (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID() : `id-${Date.now()}-${Math.floor(Math.random()*10000)}`;
+      id = (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID() 
+         : `id-${Date.now()}-${Math.floor(Math.random()*10000)}`;
       localStorage.setItem("userId", id);
       sessionStorage.setItem("userId", id);
     }
@@ -117,10 +171,23 @@ const MapContainerComponent = () => {
      - También emite 'startSharing' para marcar el estado en el backend (opcional)
   */
 const startSharing = () => {
+
+  if (isSharing) return;
+
   if (!("geolocation" in navigator)) {
     alert("La geolocalización no está disponible");
     return;
   }
+
+  if (role !== "CHOFER") {
+  alert("Solo los choferes pueden compartir ubicación");
+  return;
+}
+
+  if (!selectedUnit) {
+  alert("Debe seleccionar una unidad antes de iniciar el servicio");
+  return;
+}
 
   setIsSharing(true);
   socket.emit("startSharing", storedUserId);
@@ -128,48 +195,75 @@ const startSharing = () => {
   let retries = 0;
 
   watchIdRef.current = navigator.geolocation.watchPosition(
-    (pos) => {
-      const { latitude, longitude, accuracy } = pos.coords;
+  (pos) => {
+   const { latitude, longitude, accuracy, speed } = pos.coords;
 
-      console.log("➡ Precisión recibida:", accuracy, "metros");
+    console.log("📡 GPS:", {
+      lat: latitude,
+      lon: longitude,
+      accuracy,
+      speed
+    });
 
-      // Si la precisión es mala → avisamos y no enviamos nada
-      if (accuracy > 100) {
-        console.warn("⚠ Ubicación imprecisa (posible por IP). Reintentando…");
+    // Filtro scepta precision baja solo para pc
+    const isDesktop = !/Mobi|Android/i.test(navigator.userAgent);
 
-        retries++;
-        if (retries === 1) {
-          alert(
-            "⚠ No se puede obtener tu ubicación precisa.\n" +
-              "Activa GPS / alta precisión para evitar errores."
-          );
-        }
-
-        return; // no actualizar mapa ni backend
-      }
-
-      // Si llega acá → ubicación válida
-      retries = 0;
-
-      const newPosition = [latitude, longitude];
-      setUserPosition(newPosition);
-
-      socket.emit("locationUpdate", {
-        id: storedUserId,
-        username,
-        lat: latitude,
-        lon: longitude,
-      });
-    },
-    (err) => console.error("Error obteniendo ubicación:", err.message),
-    {
-      enableHighAccuracy: true,
-      timeout: 7000,
-      maximumAge: 0,
+    if (accuracy > 50 && !isDesktop) {
+     console.warn("⚠ GPS impreciso (celular)");
+     return;
     }
-  );
-};
 
+    if (accuracy > 2000 && isDesktop) {
+     console.warn("⚠ Ubicación demasiado imprecisa incluso para PC");
+     return;
+    }
+
+    setGpsInfo({
+    accuracy,
+    source: isDesktop ? "IP / WiFi (PC)" : "GPS (móvil)"
+    });
+
+ //------------------------------------------------------------------------
+    
+    if (lastPositionRef.current) {
+     const [prevLat, prevLon] = lastPositionRef.current;
+
+     const distance = L.latLng(prevLat, prevLon)
+      .distanceTo(L.latLng(latitude, longitude));
+
+     // Si el salto es irreal (ej: > 200 m en segundos)
+    if (distance > 200) {
+     console.warn("🚫 Salto GPS descartado:", distance, "m");
+     return;
+    }
+  }
+
+ lastPositionRef.current = [latitude, longitude];
+
+    const newPosition = [latitude, longitude];
+    setUserPosition(newPosition);
+
+    socket.emit("locationUpdate", {
+      unitId: selectedUnit,
+      driverId: storedUserId,
+      driverName: username,
+      lat: latitude,
+      lon: longitude,
+      accuracy,
+      speed
+    });
+  },
+  (err) => {
+    console.error("❌ Error GPS:", err.message);
+  },
+  {
+    enableHighAccuracy: true,
+    timeout: 15000,
+    maximumAge: 0
+  }
+);
+
+};
 
   /* ==== STOP SHARING ====
      - Detiene geolocalización
@@ -192,16 +286,26 @@ const startSharing = () => {
 
   // === FETCH INITIAL (ruta REST /buses) ===
   const fetchBuses = async () => {
-    try {
-      const response = await fetch("https://mibus-backend.onrender.com/buses");
-      if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
-      const data = await response.json();
-      // data esperado: array de { userId, username, latitude, longitude, color, shape }
-      setBuses(data);
-    } catch (error) {
-      console.error("Error obteniendo buses:", error);
-    }
-  };
+  try {
+    const response = await fetch("https://mibus-backend.onrender.com/buses");
+    if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+    const data = await response.json();
+
+    setBuses(
+      data.map((u) => ({
+        unitId: u.unitId,
+        driverName: u.driverName,
+        lat: u.latitude,   // backend REST devuelve latitude
+        lon: u.longitude, // backend REST devuelve longitude
+        color: u.color || "#007bff",
+        lastUpdate: u.lastUpdate,
+      }))
+    );
+  } catch (error) {
+    console.error("Error obteniendo buses:", error);
+  }
+};
+
 
   /* === SOCKET LISTENERS ===
      - Escuchamos 'busUpdate' (lista completa o parcial) enviado por el backend
@@ -209,23 +313,20 @@ const startSharing = () => {
   */
   useEffect(() => {
     socket.on("busUpdate", (list) => {
-      // backend puede enviar lista de documentos (con doc.id, doc.lat, etc)
-      // normalizamos a la forma que usa el frontend
-      try {
-        setBuses(
-          list.map((doc) => ({
-            userId: doc.id || doc.userId,
-            username: doc.username || doc.user,
-            latitude: doc.lat ?? doc.latitude,
-            longitude: doc.lon ?? doc.longitude,
-            color: doc.color || "#007bff",
-            shape: doc.shape || "circle",
-          }))
-        );
-      } catch (err) {
-        console.error("Error mapeando busUpdate:", err, list);
-      }
-    });
+  console.log("🚌 busUpdate recibido:", list);
+
+  setBuses(
+    list.map((u) => ({
+      unitId: u.unitId,
+      driverName: u.driverName,
+      lat: u.lat,
+      lon: u.lon,
+      color: u.color || "#007bff",
+      lastUpdate: u.lastUpdate,
+    }))
+  );
+});
+
 
     socket.on("userStopped", (userId) => {
       // opcional: eliminar del array para que desaparezca del mapa
@@ -280,6 +381,21 @@ const startSharing = () => {
       .catch((err) => console.error("Error cargando GeoJSON:", err));
   }, []);
 
+
+ useEffect(() => {
+  if (!storedUserId) return;
+
+  socket.emit("register", {
+    userId: storedUserId,
+    username,
+    role,
+    assignedUnit: role === "CHOFER" ? selectedUnit : null
+  });
+
+}, [storedUserId, role, selectedUnit, username]);
+
+
+
   // ======================== RENDER ========================
   return (
     <div style={{ position: "relative", height: "100vh", width: "100vw", overflow: "hidden" }}>
@@ -306,25 +422,52 @@ const startSharing = () => {
             }}
           />
         )}
-
-        {/* Tu marcador (local) */}
+         
+        {/* Tu marcador (local) 
         {userPosition && (
-          <Marker position={userPosition} icon={userIcon}>
+          <Marker position={userPosition} icon={userIcon}> ## SE ELIMINA 
             <Popup>Estás acá</Popup>
           </Marker>
-        )}
+        )}*/}
 
         <SetViewToLocation position={userPosition} />
 
-        {/* Marcadores de otros usuarios (PERSONAS) */}
-        {buses.map((bus) => (
-          <Marker
-            key={bus.userId}
-            position={[bus.latitude, bus.longitude]}
-            icon={createColoredIcon(bus.color, bus.shape)}
-          >
-            <Popup>{bus.username || bus.userId}</Popup>
+        {/* Marcadores de UNIDADES */}
+         {buses
+           .filter(
+             (bus) =>
+              typeof bus.lat === "number" &&
+              typeof bus.lon === "number"
+            )
+            .map((bus) => (
+           <Marker
+             key={`${bus.unitId}-${bus.lat}-${bus.lon}`}
+             position={[bus.lat, bus.lon]}
+             icon={createBusIcon(bus.color)}
+             riseOnHover
+           >
+
+          <Popup>
+            <div style={{ minWidth: "180px" }}>
+            <strong>🚍 Unidad:</strong> {bus.unitId}
+            <br />
+            <strong>👤 Chofer:</strong> {bus.driverName || "No asignado"}
+            <br />
+            <strong>🕒 Última señal:</strong>
+            <br />
+            {new Date(bus.lastUpdate).toLocaleTimeString()}
+            <hr style={{ margin: "6px 0" }} />
+            <small>
+            📡 Fuente: {gpsInfo.source}
+            <br />
+            🎯 Precisión: {gpsInfo.accuracy
+            ? `${Math.round(gpsInfo.accuracy)} m`
+            : "N/D"}
+            </small>
+            </div>
+           </Popup>
           </Marker>
+
         ))}
       </MapContainer>
 
@@ -343,25 +486,55 @@ const startSharing = () => {
       >
         <MenuIcon fontSize="large" />
       </IconButton>
-
-      <button
-        onClick={isSharing ? stopSharing : startSharing}
+      
+      {/* BOTON ELECCION DE UNIDAD */}
+      <select
+         value={selectedUnit}
+         onChange={(e) => {
+         setSelectedUnit(e.target.value);
+         localStorage.setItem("unitId", e.target.value);
+         }}
         style={{
           position: "fixed",
-          bottom: 20,
+          bottom: 80,
           right: 20,
           zIndex: 2000,
-          padding: "12px 20px",
-          backgroundColor: isSharing ? "red" : "green",
-          color: "white",
-          border: "none",
-          borderRadius: "10px",
-          fontSize: "16px",
-          boxShadow: "0 2px 5px rgba(0,0,0,0.3)",
-        }}
-      >
-        {isSharing ? "🚫 Dejar de compartir" : "🚩 Compartir ubicación"}
-      </button>
+          padding: "10px",
+          borderRadius: "8px",
+          fontSize: "14px",
+         }}
+           >
+          <option value="">Seleccionar unidad</option>
+          <option value="Unidad 1">Unidad 1</option>
+          <option value="Unidad 2">Unidad 2</option>
+          <option value="Unidad 3">Unidad 3</option>
+          </select>
+
+       {/* BOTON COMPARTIR UBICACION */}
+      <button
+        disabled={!selectedUnit}
+        onClick={isSharing ? stopSharing : startSharing}
+        style={{
+         position: "fixed",
+         bottom: 20,
+         right: 20,
+         zIndex: 2000,
+         padding: "12px 20px",
+         backgroundColor: !selectedUnit
+         ? "gray"
+         : isSharing
+         ? "red"
+         : "green",
+         color: "white",
+         border: "none",
+         borderRadius: "10px",
+         fontSize: "16px",
+         cursor: !selectedUnit ? "not-allowed" : "pointer",
+         }}
+        >
+        {isSharing ? "🚫 Finalizar servicio" : "🚍 Iniciar servicio"}
+        </button>
+
 
       <Sidebar
         open={openDrawer}

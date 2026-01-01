@@ -38,12 +38,14 @@ const Login = () => {
           localStorage.setItem("username", data.username);
           localStorage.setItem("image", data.image); 
           localStorage.setItem("userId", data.userId);
+          localStorage.setItem("role", data.role);
 
         } else {
           sessionStorage.setItem("token", data.token);
           sessionStorage.setItem("username", data.username);
           sessionStorage.setItem("image", data.image);
           sessionStorage.setItem("userId", data.userId); 
+          sessionStorage.setItem("role", data.role); 
         }
 
         //alert("Inicio de sesión exitoso");

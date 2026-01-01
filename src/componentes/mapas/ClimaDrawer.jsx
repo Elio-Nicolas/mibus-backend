@@ -10,7 +10,7 @@ const ClimaDrawer = ({ open, onClose, children }) => {
       PaperProps={{
         sx: {
           width: 300,
-          backgroundColor: "rgba(255,255,255,0.9)",
+          backgroundColor: "rgba(169, 213, 238, 0.8)",
           padding: 2,
           textAlign: "center",
         },
