@@ -7,13 +7,14 @@ const multer = require("multer");
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const cloudinary = require("../config/cloudinary");
 
-
-// Configuración de almacenamiento Cloudinary
+/* ======================================================
+   CONFIGURACIÓN CLOUDINARY
+====================================================== */
 
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
-    folder: "mibus_profiles", // Carpeta dentro de tu cuenta Cloudinary
+    folder: "mibus_profiles",
     allowed_formats: ["jpg", "png", "jpeg"],
     transformation: [{ width: 400, height: 400, crop: "limit" }],
   },
@@ -21,16 +22,14 @@ const storage = new CloudinaryStorage({
 
 const upload = multer({ storage });
 
-// Registro de nuevo usuario
+/* ======================================================
+   REGISTRO DE USUARIO
+   (por defecto USUARIO)
+====================================================== */
 
 router.post("/signup", upload.single("image"), async (req, res) => {
   const { username, password } = req.body;
-  const imagePath = req.file ? req.file.path : null; //URL de Cloudinary
-
-  console.log("Datos recibidos:");
-  console.log("Username:", username);
-  console.log("Password:", password);
-  console.log("Imagen:", imagePath);
+  const imagePath = req.file ? req.file.path : null;
 
   try {
     const existingUser = await User.findOne({ username });
@@ -44,41 +43,51 @@ router.post("/signup", upload.single("image"), async (req, res) => {
       username,
       password: hashedPassword,
       image: imagePath,
+      role: "USUARIO", // 🔐 SIEMPRE por defecto
     });
 
     await newUser.save();
 
-    res.status(201).json({ message: "Usuario creado correctamente" });
+    res.status(201).json({
+      message: "Usuario creado correctamente",
+    });
   } catch (err) {
     console.error("Error al registrar usuario:", err);
     res.status(500).json({ error: "No se pudo registrar el usuario" });
   }
 });
 
-
-// Inicio de sesión (login)
+/* ======================================================
+   LOGIN
+   (DEVUELVE ROL + UNIDAD)
+====================================================== */
 
 router.post("/signin", async (req, res) => {
   const { username, password } = req.body;
 
-  console.log("Datos recibidos:", { username, password });
-
   try {
     const user = await User.findOne({ username });
-
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return res.status(401).json({ error: "Credenciales inválidas" });
     }
 
-    const token = jwt.sign({ userId: user._id }, "secreto_mibus", {
-      expiresIn: "1h",
-    });
+    const token = jwt.sign({
+     userId: user._id,
+     username: user.username,
+     role: user.role
+     },
+    process.env.JWT_SECRET,
+     { expiresIn: "1d" }
+    );
+
 
     res.json({
       token,
       userId: user._id,
       username: user.username,
-      image: user.image, // URL de Cloudinary
+      role: user.role,
+      assignedUnit: user.assignedUnit || null,
+      image: user.image,
     });
   } catch (err) {
     console.error("Error al iniciar sesión:", err);
@@ -86,24 +95,28 @@ router.post("/signin", async (req, res) => {
   }
 });
 
-
-//Actualizar perfil (nombre + imagen)
+/* ======================================================
+   ACTUALIZAR PERFIL
+====================================================== */
 
 router.put("/upload/:id", upload.single("image"), async (req, res) => {
   const { username } = req.body;
-  const imagePath = req.file ? req.file.path : undefined; //URL de Cloudinary
+  const imagePath = req.file ? req.file.path : undefined;
 
   try {
     const updates = {};
     if (username) updates.username = username;
     if (imagePath) updates.image = imagePath;
 
-    const updatedUser = await User.findByIdAndUpdate(req.params.id, updates, {
-      new: true,
-    });
+    const updatedUser = await User.findByIdAndUpdate(
+      req.params.id,
+      updates,
+      { new: true }
+    );
 
-    if (!updatedUser)
+    if (!updatedUser) {
       return res.status(404).json({ error: "Usuario no encontrado" });
+    }
 
     res.json({
       message: "Perfil actualizado correctamente",
@@ -111,6 +124,39 @@ router.put("/upload/:id", upload.single("image"), async (req, res) => {
     });
   } catch (err) {
     console.error("Error al actualizar perfil:", err);
+    res.status(500).json({ error: "Error en el servidor" });
+  }
+});
+
+/* ======================================================
+   (FUTURO) ASIGNAR ROL / UNIDAD
+   👉 SOLO ADMIN (lo usamos en Paso C)
+====================================================== */
+
+router.put("/assign-role/:id", async (req, res) => {
+  const { role, assignedUnit } = req.body;
+
+  try {
+    const updates = {};
+    if (role) updates.role = role;
+    if (assignedUnit !== undefined) updates.assignedUnit = assignedUnit;
+
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      updates,
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
+
+    res.json({
+      message: "Rol / unidad actualizados",
+      user,
+    });
+  } catch (err) {
+    console.error("Error al asignar rol:", err);
     res.status(500).json({ error: "Error en el servidor" });
   }
 });

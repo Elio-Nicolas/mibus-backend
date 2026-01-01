@@ -22,126 +22,217 @@ const io = socketIo(server, {
 const userRoutes = require("./routes/userRoutes");
 app.use("/api/users", userRoutes);
 
+const authRoutes = require("../routes/auth");
+app.use("/auth", authRoutes);
+
 /* ======================= MONGO ======================= */
 mongoose.connect(
-  "mongodb+srv://baigorriaen83_db_user:5RnvPqIcXJq6h197@clustermibus.fc3bgtx.mongodb.net/?appName=ClusterMibus",
-  { useNewUrlParser: true, useUnifiedTopology: true }
+  "mongodb+srv://baigorriaen83_db_user:5RnvPqIcXJq6h197@clustermibus.fc3bgtx.mongodb.net/?appName=ClusterMibus"
 );
 
 /* ======================= SCHEMA ======================= */
 const BusSchema = new mongoose.Schema({
-  id: String,                // userId
-  username: String,
+  unitId: { type: String, required: true, unique: true },
+  driverId: { type: String, required: true },
+  driverName: { type: String },
+
   lat: Number,
   lon: Number,
-  color: String,            // Color único del usuario
-  shape: String,            // Futuro: forma del ícono
-  timestamp: { type: Date, default: Date.now }
+
+  color: String,
+  shape: { type: String, default: "circle" },
+
+  active: { type: Boolean, default: false },
+  lastUpdate: { type: Date, default: Date.now }
 });
 
 const Bus = mongoose.model("Bus", BusSchema);
 
 /* ======================= ESTADO DE COMPARTIR ======================= */
-let sharingState = {}; 
-// sharingState[userId] = true/false
+const sharingState = {}; 
+// sharingState[userId] = true | false
 
 /* ======================= SOCKET.IO ======================= */
 io.on("connection", (socket) => {
   console.log("🟢 Usuario conectado");
 
-  /* --- Usuario comienza a compartir --- */
-  socket.on("startSharing", (userId) => {
-    sharingState[userId] = true;
-    console.log(`📍 ${userId} comenzó a compartir`);
-  });
+  /* ======================= D9: RECONEXIÓN LIMPIA ======================= */
+socket.on("register", async ({ userId, username, role, assignedUnit }) => {
+  socket.userId = userId;
+  socket.username = username;
+  socket.role = role;
+  socket.unitId = assignedUnit || null;
 
-  /* --- Usuario deja de compartir --- */
-  socket.on("stopSharing", async (userId) => {
-    sharingState[userId] = false;
-    console.log(`❌ ${userId} dejó de compartir`);
+  if (role !== "CHOFER" || !assignedUnit) return;
 
-    // Borrar ubicación de Mongo
-    await Bus.deleteOne({ id: userId });
+  const bus = await Bus.findOne({ unitId: assignedUnit });
 
-    // Avisar a todos que desaparece del mapa
-    io.emit("userStopped", userId);
-  });
+  if (bus) {
+    // Si la unidad existe, la reactivamos
+    bus.driverId = userId;
+    bus.driverName = username;
+    bus.active = true;
+    bus.lastUpdate = new Date();
+    await bus.save();
 
-  /* --- Recibir ubicación (solo si está compartiendo) --- */
-  socket.on("locationUpdate", async (data) => {
-    const { id, username, lat, lon } = data;
+    console.log(`🔁 Reconexion: ${username} retomó ${assignedUnit}`);
+  } else {
+    // Si no existe, la creamos (caso extremo)
+    await Bus.create({
+      unitId: assignedUnit,
+      driverId: userId,
+      driverName: username,
+      active: true,
+      lastUpdate: new Date()
+    });
 
-    console.log("📡 Ubicación recibida:", data);
+    console.log(`🆕 Unidad creada en reconexión: ${assignedUnit}`);
+  }
 
-    if (!sharingState[id]) {
-      console.log(`⚠️ Ubicación ignorada: ${id} tiene sharing OFF`);
-      return;
-    }
-
-    // Ver si el usuario ya existe
-    let existing = await Bus.findOne({ id });
-
-    // Si no existe → asignar color único
-    if (!existing) {
-      data.color = "#" + Math.floor(Math.random() * 16777215).toString(16);
-      console.log(`🎨 Nuevo usuario → color asignado: ${data.color}`);
-    } else {
-      data.color = existing.color; // Mantener el mismo color
-    }
-
-    // Guardar en Mongo
-    /* === FIX: guardar con campos correctos === */
-await Bus.findOneAndUpdate(
-  { id },
-  {
-    id,
-    username,
-    lat,
-    lon,
-    color: data.color,
-    shape: "circle"
-  },
-  { upsert: true }
-);
-/* === END FIX === */
-
-
-    // Enviar lista actualizada
-    const buses = await Bus.find({});
-    io.emit("busUpdate", buses.map(bus => ({
-    userId: bus.id,
-    username: bus.username,
-    latitude: bus.lat,
-    longitude: bus.lon,
-    color: bus.color,
-    shape: bus.shape
-   })));
-
-  });
-
-  socket.on("disconnect", () => console.log("🔴 Usuario desconectado"));
+  const activeUnits = await Bus.find({ active: true });
+  io.emit("busUpdate", activeUnits);
 });
+
+  /* ========= START SHARING ========= */
+  socket.on("startSharing", () => {
+    if (socket.role !== "CHOFER") return;
+
+    sharingState[socket.userId] = true;
+    console.log(`📍 Chofer ${socket.username} comenzó a compartir`);
+  });
+
+  /* ========= STOP SHARING ========= */
+  socket.on("stopSharing", async () => {
+    if (socket.role !== "CHOFER") return;
+
+    sharingState[socket.userId] = false;
+    console.log(`❌ Chofer ${socket.username} dejó de compartir`);
+
+    await Bus.updateMany(
+      { driverId: socket.userId },
+      { active: false }
+    );
+
+    const activeUnits = await Bus.find({ active: true });
+    io.emit("busUpdate", activeUnits);
+  });
+
+  /* ========= LOCATION UPDATE (ÚNICO Y SEGURO) ========= */
+  socket.on("locationUpdate", async ({ lat, lon }) => {
+    if (socket.role !== "CHOFER") return;
+    if (!socket.unitId) return;
+    if (!sharingState[socket.userId]) return;
+
+    // verifica si la unidad está siendo usada 
+    const unitInUse = await Bus.findOne({
+     unitId: socket.unitId,
+     active: true,
+     driverId: { $ne: socket.userId }
+    });
+
+if (unitInUse) {
+  console.log("🚫 Unidad en uso por otro chofer:", socket.unitId);
+  socket.emit("unitBlocked", {
+    unitId: socket.unitId,
+    driverName: unitInUse.driverName
+  });
+  return;
+}
+
+    let existing = await Bus.findOne({ unitId: socket.unitId });
+
+    let color = existing
+      ? existing.color
+      : "#" + Math.floor(Math.random() * 16777215).toString(16);
+
+    await Bus.findOneAndUpdate(
+      { unitId: socket.unitId },
+      {
+        unitId: socket.unitId,
+        driverId: socket.userId,
+        driverName: socket.username,
+        lat,
+        lon,
+        color,
+        shape: "circle",
+        active: true,
+        lastUpdate: new Date()
+      },
+      { upsert: true }
+    );
+
+    const activeUnits = await Bus.find({ active: true });
+    io.emit("busUpdate", activeUnits);
+  });
+
+  socket.on("disconnect", () => {
+   if (socket.userId) {
+     delete sharingState[socket.userId];
+   }
+   console.log("🔴 Usuario desconectado:", socket.username || "desconocido");
+  });
+
+});
+
+/* ======================= D8: TIMEOUT DE UNIDADES ======================= */
+// Si una unidad no envía ubicación en X segundos → inactive
+const UNIT_TIMEOUT_MS = 30_000; // 30 segundos (ajustable)
+
+setInterval(async () => {
+  try {
+    const limite = new Date(Date.now() - UNIT_TIMEOUT_MS);
+
+    const result = await Bus.updateMany(
+      {
+        active: true,
+        lastUpdate: { $lt: limite }
+      },
+      {
+        active: false
+      }
+    );
+
+    if (result.modifiedCount > 0) {
+      console.log(`⏱ Unidades desactivadas por timeout: ${result.modifiedCount}`);
+
+      const activeUnits = await Bus.find({
+        active: true,
+        lat: { $type: "number" },
+        lon: { $type: "number" }
+      });
+
+      io.emit("busUpdate", activeUnits);
+    }
+  } catch (err) {
+    console.error("❌ Error en timeout de unidades:", err);
+  }
+}, 10_000); // corre cada 10 segundos
+
 
 /* ======================= RUTA REST ======================= */
 app.get("/buses", async (req, res) => {
   try {
-    const docs = await Bus.find({});
-    const response = docs.map(doc => ({
-      userId: doc.id,
-      username: doc.username,
-      latitude: doc.lat,
-      longitude: doc.lon,
-      color: doc.color || "#007bff",
-      shape: doc.shape || "circle",
-      timestamp: doc.timestamp
-    }));
-    res.json(response);
-  } catch (err) {
-    console.error("❌ Error al obtener buses:", err);
-    res.status(500).json({ error: "Error al obtener los buses" });
+    const units = await Bus.find({ active: true });
+
+    res.json(
+      units.map((u) => ({
+        unitId: u.unitId,
+        driverName: u.driverName,
+        latitude: u.lat,
+        longitude: u.lon,
+        color: u.color,
+        shape: u.shape,
+        lastUpdate: u.lastUpdate
+      }))
+    );
+  } catch (error) {
+    console.error("Error en /buses:", error);
+    res.status(500).json({ error: "Error obteniendo unidades" });
   }
 });
 
 /* ======================= START SERVER ======================= */
 const PORT = process.env.PORT || 4001;
-server.listen(PORT, () => console.log(`🚍 Backend corriendo en puerto ${PORT}`));
+server.listen(PORT, () =>
+  console.log(`🚍 Backend corriendo en puerto ${PORT}`)
+);
