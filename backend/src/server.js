@@ -27,8 +27,12 @@ app.use("/auth", authRoutes);
 
 /* ======================= MONGO ======================= */
 mongoose.connect(
-  "mongodb+srv://baigorriaen83_db_user:5RnvPqIcXJq6h197@clustermibus.fc3bgtx.mongodb.net/?appName=ClusterMibus"
+  "mongodb+srv://baigorriaen83_db_user:5RnvPqIcXJq6h197@clustermibus.fc3bgtx.mongodb.net/mibus?appName=ClusterMibus"
 );
+
+mongoose.connection.once("open", () => {
+  console.log("✅ Conectado a la BD:", mongoose.connection.name);
+});
 
 /* ======================= SCHEMA ======================= */
 const BusSchema = new mongoose.Schema({

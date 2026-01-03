@@ -3,14 +3,15 @@ const router = express.Router();
 const User = require("../models/User");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
-const multer = require("multer");
-const { CloudinaryStorage } = require("multer-storage-cloudinary");
-const cloudinary = require("../config/cloudinary");
+//const multer = require("multer");
+//const { CloudinaryStorage } = require("multer-storage-cloudinary");
+//const cloudinary = require("../config/cloudinary");
+const requireAdmin = require("../middlewares/requireAdmin");
 
 /* ======================================================
    CONFIGURACIÓN CLOUDINARY
 ====================================================== */
-
+/* 
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
@@ -20,14 +21,14 @@ const storage = new CloudinaryStorage({
   },
 });
 
-const upload = multer({ storage });
+const upload = multer({ storage }); */
 
 /* ======================================================
    REGISTRO DE USUARIO
    (por defecto USUARIO)
 ====================================================== */
 
-router.post("/signup", upload.single("image"), async (req, res) => {
+router.post("/signup", (req, res, next) => next(), async (req, res) => {
   const { username, password } = req.body;
   const imagePath = req.file ? req.file.path : null;
 
@@ -99,7 +100,7 @@ router.post("/signin", async (req, res) => {
    ACTUALIZAR PERFIL
 ====================================================== */
 
-router.put("/upload/:id", upload.single("image"), async (req, res) => {
+router.put("/upload/:id", (req, res, next) => next(), async (req, res) => {
   const { username } = req.body;
   const imagePath = req.file ? req.file.path : undefined;
 
@@ -133,7 +134,7 @@ router.put("/upload/:id", upload.single("image"), async (req, res) => {
    👉 SOLO ADMIN (lo usamos en Paso C)
 ====================================================== */
 
-router.put("/assign-role/:id", async (req, res) => {
+router.put("/assign-role/:id", requireAdmin, async (req, res) => {
   const { role, assignedUnit } = req.body;
 
   try {
@@ -160,5 +161,19 @@ router.put("/assign-role/:id", async (req, res) => {
     res.status(500).json({ error: "Error en el servidor" });
   }
 });
+
+/* ======================================================
+   METODO GET
+====================================================== */
+
+router.get("/", requireAdmin, async (req, res) => {
+  try {
+    const users = await User.find().select("-password");
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ error: "Error al obtener usuarios" });
+  }
+});
+
 
 module.exports = router;
