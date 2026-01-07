@@ -5,18 +5,19 @@ const UserSchema = new mongoose.Schema({
   password: { type: String, required: true },
   image: { type: String },
 
-  // 🔐 NUEVO
+  // ===== ROLES ===== //
   role: {
     type: String,
     enum: ["ADMIN", "CHOFER", "USUARIO"],
     default: "USUARIO",
   },
 
-  // 🚍 Solo si es chofer
+  // ===== SOLO CHOFER ===== //
   assignedUnit: {
     type: String,
     default: null,
   },
 });
 
-module.exports = mongoose.model("User", UserSchema);
+module.exports = mongoose.model("User", UserSchema, "users");
+
