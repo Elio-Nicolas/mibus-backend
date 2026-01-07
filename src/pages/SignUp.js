@@ -28,6 +28,7 @@ const SignUp = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // ⚠️ USAMOS FormData (porque hay imagen)
     const formPayload = new FormData();
     formPayload.append("username", formData.username);
     formPayload.append("password", formData.password);
@@ -36,23 +37,24 @@ const SignUp = () => {
     }
 
     try {
-      const res = await fetch("https://mibus-backend.onrender.com/api/users/signup", {
-        method: "POST",
-        body: formPayload,
-         });  
-
+    const res = await fetch("http://localhost:4001/api/users/signup", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    username: formData.username,
+    password: formData.password,
+  }),
+});
 
       const data = await res.json();
 
       if (res.ok) {
-        alert("Usuario registrado");
-        navigate("/signin");
+        alert("Usuario registrado correctamente");
+        navigate("/login");
       } else {
-        if (data.error === "El usuario ya existe") {
-          alert("Ya existe un usuario con ese nombre");
-        } else {
-          alert(" Error: " + data.error);
-        }
+        alert(data.error || "Error al registrar usuario");
       }
     } catch (err) {
       console.error("Error al registrarse:", err);
@@ -66,7 +68,11 @@ const SignUp = () => {
 
       <img src={imageIcon} alt="Bus" className="signup-image" />
 
-      <form onSubmit={handleSubmit} className="signup-form" encType="multipart/form-data">
+      <form
+        onSubmit={handleSubmit}
+        className="signup-form"
+        encType="multipart/form-data"
+      >
         <div className="input-group">
           <input
             type="text"
@@ -95,13 +101,14 @@ const SignUp = () => {
           <input
             type="file"
             accept="image/*"
-            capture="user"
             onChange={handleImageChange}
             className="signup-input"
           />
         </div>
 
-        <button type="submit" className="signup-button">REGISTRARSE</button>
+        <button type="submit" className="signup-button">
+          REGISTRARSE
+        </button>
 
         <div className="divider">
           <hr />
@@ -115,7 +122,10 @@ const SignUp = () => {
         </div>
 
         <p style={{ marginTop: "1rem" }}>
-          ¿Ya tenés cuenta?   <Link to="/login"><button className="btn btn-login1">    INICIAR SESIÓN</button></Link>  
+          ¿Ya tenés cuenta?
+          <Link to="/login">
+            <button className="btn btn-login1"> INICIAR SESIÓN</button>
+          </Link>
         </p>
       </form>
     </div>

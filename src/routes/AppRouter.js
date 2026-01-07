@@ -1,58 +1,93 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import Login from "../pages/Logins";
 import Home from "../pages/Home";
-import Portada from "../pages/Portada";
 import SignUp from "../pages/SignUp";
 import MapContainerComponent from "../componentes/mapas/MapContainerComponent";
-import { MapContainer } from "react-leaflet";
+import React, { useState, useEffect } from "react";
+import AdminPanel from "../pages/AdminPanel";
 
-import React, { useState, useEffect } from 'react';
 
-
-// Ruta protegida *solo deja pasar si está autenticado
+/* ================= PROTECTED ROUTE ================= */
 const ProtectedRoute = ({ children }) => {
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    const username = localStorage.getItem("username") || sessionStorage.getItem("username");
-    if (username) {
-      setIsAuthenticated(true);
-    }
+    const token =
+      localStorage.getItem("token") || sessionStorage.getItem("token");
+    if (token) setIsAuthenticated(true);
     setCheckingAuth(false);
   }, []);
 
-  if (checkingAuth) {
-    return <div>Cargando...</div>; // o un spinner
-  }
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
+  if (checkingAuth) return <div>Cargando...</div>;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
 
   return children;
 };
 
+const isAdmin = () => {
+  const token = localStorage.getItem("token");
+  if (!token) return false;
+
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return payload.role === "ADMIN";
+  } catch {
+    return false;
+  }
+};
+
+const AdminRoute = ({ children }) => {
+  const token =
+    localStorage.getItem("token") || sessionStorage.getItem("token");
+
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+
+    if (payload.role !== "ADMIN") {
+      return <Navigate to="/" replace />;
+    }
+
+    return children;
+  } catch {
+    return <Navigate to="/login" replace />;
+  }
+};
+
+
+/* ================= ROUTER ================= */
 const AppRouter = () => {
   return (
+    
     <Routes>
-      <Route path="/" element={<Portada />} />
+      console.log("🔥 APP ROUTER CARGADO");
+
+         {/* 🔐 AUTH */}
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<SignUp />} />
-      <Route path="/home" element={<Home/>}/>
-      
-      {/* Ruta protegida: solo accedés si estás logueado */}
-      <Route 
-        path="/mapa" 
-        element={
-          <ProtectedRoute>
-            <MapContainerComponent />
-          </ProtectedRoute>
-        } 
-      />
 
-      {/* Redirigir por defecto */}
-      <Route path="*" element={<Navigate to="/signup" />} />
+        {/* 🔒 INTERNO */}
+
+        <Route
+        path="/admin"
+          element={
+          // <AdminRoute>
+            <AdminPanel />
+         // </AdminRoute>
+         }
+     />
+
+      
+         {/* 🌍 PUBLICO */}
+      <Route path="/" element={<MapContainerComponent />} />
+      <Route path="/mapa-publico" element={<MapContainerComponent />} />
+
+      {/* fallback */}
+      <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   );
 };

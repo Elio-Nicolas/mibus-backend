@@ -12,30 +12,31 @@ import ClimaDrawer from "./ClimaDrawer";
 import ClimaWidget from "../clima/ClimaWidget";
 import "./Drawers.css";
 import io from "socket.io-client";
+import { useNavigate } from "react-router-dom";
 
 // ===================== CONFIG SOCKET =====================
-//const socket = io("https://mibus-backend.onrender.com"); // backend en Render
+/*/const socket = io("https://mibus-backend.onrender.com"); // backend en Render
 const socket = io("https://mibus-backend.onrender.com", {
   transports: ["websocket"],
-});
+});*/
 
+const socket = io("http://localhost:4001", { transports: ["websocket"],});
 
-// ===================== ICONOS =============================
-const userIcon = new L.DivIcon({
-  html: `
-    <div style="
-      width: 20px; 
-      height: 20px; 
-      background: #007bff; 
-      border-radius: 50%; 
-      border: 3px solid white;
-      box-shadow: 0 0 6px rgba(0,0,0,0.4);
-    ">
-    </div>
-  `,
-  className: "",
-  iconSize: [20, 20],
-});
+const getBusStatus = (lastUpdate) => {
+  if (!lastUpdate) return { label: "SIN DATOS", color: "#999" };
+
+  const now = Date.now();
+  const last = new Date(lastUpdate).getTime();
+  const diffSeconds = (now - last) / 1000;
+
+  if (diffSeconds < 30) {
+    return { label: "EN SERVICIO", color: "green" };
+  }
+  if (diffSeconds < 120) {
+    return { label: "DETENIDA", color: "orange" };
+  }
+  return { label: "SIN SEÑAL", color: "red" };
+};
 
 
 const DEFAULT_POSITION = [-33.6756, -65.4578];
@@ -121,38 +122,27 @@ const MapContainerComponent = () => {
   const [selectedLinea, setSelectedLinea] = useState(null);
   const [paradasData, setParadasData] = useState(null);
   const lastPositionRef = useRef(null);
+
   
   // === ESTADO GPS (PRECISIÓN Y FUENTE) ===
-  const [gpsInfo, setGpsInfo] = useState({
-   accuracy: null,
-   source: "desconocida",
-  });
+  const [gpsInfo, setGpsInfo] = useState({accuracy: null,source: "desconocida",});
 
   // === SELECCIONA UNIDAD ===
-  const [selectedUnit, setSelectedUnit] = useState(
-  localStorage.getItem("unitId") || ""
-);
-
+  const [selectedUnit, setSelectedUnit] = useState(localStorage.getItem("unitId") || "");
 
   // === USER INFO (username) ===
-  const [username, setUsername] = useState(
-    localStorage.getItem("username") || sessionStorage.getItem("username") || "Desconocido"
-  );
-  const [image, setImage] = useState(
-    localStorage.getItem("image") || sessionStorage.getItem("image") || ""
-  );
+  const [username, setUsername] = useState(localStorage.getItem("username") || sessionStorage.getItem("username") || "Desconocido");
+  const [image, setImage] = useState(localStorage.getItem("image") || sessionStorage.getItem("image") || "");
+  const role = localStorage.getItem("role") || sessionStorage.getItem("role");
 
-  const role =
-  getRoleFromToken() ||
-  sessionStorage.getItem("role") ||
-  "PASAJERO";
-
+  // ==== VOLVER A MAPA DESDE ADMIN ====
+  //const navigate = useNavigate();
 
   /* === CRITICO: asegurar que exista un userId único por dispositivo ===
      Si no existe en localStorage/sessionStorage, lo creamos (crypto.randomUUID o fallback).
      Esto evita que PC y teléfono compartan el mismo ID.
   */
-  const [storedUserId, setStoredUserId] = useState(() => {
+  const [storedUserId] = useState(() => {
     let id = localStorage.getItem("userId") || sessionStorage.getItem("userId");
     if (!id) {
       // navegador moderno: crypto.randomUUID(); fallback simple si no disponible:
@@ -192,7 +182,6 @@ const startSharing = () => {
   setIsSharing(true);
   socket.emit("startSharing", storedUserId);
 
-  let retries = 0;
 
   watchIdRef.current = navigator.geolocation.watchPosition(
   (pos) => {
@@ -284,10 +273,10 @@ const startSharing = () => {
     socket.emit("stopSharing", storedUserId);
   };
 
-  // === FETCH INITIAL (ruta REST /buses) ===
+  /*// === FETCH INITIAL (ruta REST /buses) ===
   const fetchBuses = async () => {
   try {
-    const response = await fetch("https://mibus-backend.onrender.com/buses");
+    const response = await fetch("http://localhost:4001/buses");
     if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
     const data = await response.json();
 
@@ -304,7 +293,7 @@ const startSharing = () => {
   } catch (error) {
     console.error("Error obteniendo buses:", error);
   }
-};
+};*/
 
 
   /* === SOCKET LISTENERS ===
@@ -339,11 +328,11 @@ const startSharing = () => {
     };
   }, []);
 
-  useEffect(() => {
+ /* useEffect(() => {
     fetchBuses();
     const interval = setInterval(fetchBuses, 3000);
     return () => clearInterval(interval);
-  }, []);
+  }, []);*/
 
   const handleChangeUsername = () => {
     const newName = prompt("Ingrese su nuevo nombre:", username);
@@ -360,10 +349,12 @@ const startSharing = () => {
     const formData = new FormData();
     formData.append("image", file);
     try {
-      const response = await fetch(`https://mibus-backend.onrender.com/api/users/upload/${userId}`, {
-        method: "PUT",
-        body: formData,
-      });
+     const response = await fetch(`http://localhost:4001/api/users/upload/${userId}`,{
+     method: "PUT",
+     body: formData,
+    }
+    );
+
       const data = await response.json();
       if (data.user && data.user.image) {
         localStorage.setItem("image", data.user.image);
@@ -394,12 +385,15 @@ const startSharing = () => {
 
 }, [storedUserId, role, selectedUnit, username]);
 
-
+  // ===== PARA NAVEGAR DESDE MAPA A PANEL ADMIN =====
+  const navigate = useNavigate();
 
   // ======================== RENDER ========================
   return (
+    
     <div style={{ position: "relative", height: "100vh", width: "100vw", overflow: "hidden" }}>
       {/* MAPA */}
+
       <MapContainer center={DEFAULT_POSITION} zoom={17} style={{ height: "100%", width: "100%" }}>
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap contributors" />
 
@@ -439,36 +433,50 @@ const startSharing = () => {
               typeof bus.lat === "number" &&
               typeof bus.lon === "number"
             )
-            .map((bus) => (
+            .map((bus) => {
+             const status = getBusStatus(bus.lastUpdate);
+
+             return (
            <Marker
              key={`${bus.unitId}-${bus.lat}-${bus.lon}`}
              position={[bus.lat, bus.lon]}
-             icon={createBusIcon(bus.color)}
+             icon={createBusIcon(status.color)}
              riseOnHover
            >
-
+         
           <Popup>
-            <div style={{ minWidth: "180px" }}>
-            <strong>🚍 Unidad:</strong> {bus.unitId}
-            <br />
-            <strong>👤 Chofer:</strong> {bus.driverName || "No asignado"}
-            <br />
-            <strong>🕒 Última señal:</strong>
-            <br />
-            {new Date(bus.lastUpdate).toLocaleTimeString()}
-            <hr style={{ margin: "6px 0" }} />
-            <small>
-            📡 Fuente: {gpsInfo.source}
-            <br />
-            🎯 Precisión: {gpsInfo.accuracy
-            ? `${Math.round(gpsInfo.accuracy)} m`
-            : "N/D"}
+      <div style={{ minWidth: "180px" }}>
+      <strong>🚍 Unidad:</strong> {bus.unitId}
+      <br />
+
+       <strong>👤 Chofer:</strong> {bus.driverName || "No asignado"}
+      <br />
+
+      <strong>📊 Estado:</strong>{" "}
+       <span style={{ color: status.color, fontWeight: "bold" }}>
+         {status.label}
+         </span>
+         <br />
+
+         <strong>🕒 Última señal:</strong>
+         <br />
+         {bus.lastUpdate
+         ? new Date(bus.lastUpdate).toLocaleTimeString()
+         : "Sin datos"}
+          <hr style={{ margin: "6px 0" }} />
+
+          <small>
+           📡 Fuente: {gpsInfo.source}
+           <br />
+           🎯 Precisión:{" "}
+            {gpsInfo.accuracy
+             ? `${Math.round(gpsInfo.accuracy)} m`
+             : "N/D"}
             </small>
             </div>
            </Popup>
           </Marker>
-
-        ))}
+         )})} 
       </MapContainer>
 
       {/* BOTÓN Y DRAWERS */}
@@ -476,7 +484,7 @@ const startSharing = () => {
         onClick={() => setOpenDrawer(true)}
         style={{
           position: "fixed",
-          top: 20,
+          top: 95,
           right: 10,
           zIndex: 1300,
           backgroundColor: "white",
@@ -488,53 +496,57 @@ const startSharing = () => {
       </IconButton>
       
       {/* BOTON ELECCION DE UNIDAD */}
-      <select
-         value={selectedUnit}
-         onChange={(e) => {
-         setSelectedUnit(e.target.value);
-         localStorage.setItem("unitId", e.target.value);
-         }}
-        style={{
-          position: "fixed",
-          bottom: 80,
-          right: 20,
-          zIndex: 2000,
-          padding: "10px",
-          borderRadius: "8px",
-          fontSize: "14px",
-         }}
-           >
-          <option value="">Seleccionar unidad</option>
-          <option value="Unidad 1">Unidad 1</option>
-          <option value="Unidad 2">Unidad 2</option>
-          <option value="Unidad 3">Unidad 3</option>
-          </select>
+      {role === "CHOFER" && (
+     <select
+      value={selectedUnit}
+      onChange={(e) => {
+      setSelectedUnit(e.target.value);
+      localStorage.setItem("unitId", e.target.value);
+      }}
+    style={{
+      position: "fixed",
+      bottom: 80,
+      right: 20,
+      zIndex: 2000,
+      padding: "10px",
+      borderRadius: "8px",
+      fontSize: "14px",
+    }}
+  >
+    <option value="">Seleccionar unidad</option>
+    <option value="Unidad 1">Unidad 1</option>
+    <option value="Unidad 2">Unidad 2</option>
+    <option value="Unidad 3">Unidad 3</option>
+  </select>
+)}
+
 
        {/* BOTON COMPARTIR UBICACION */}
+      {role === "CHOFER" && (
       <button
-        disabled={!selectedUnit}
-        onClick={isSharing ? stopSharing : startSharing}
-        style={{
-         position: "fixed",
-         bottom: 20,
-         right: 20,
-         zIndex: 2000,
-         padding: "12px 20px",
-         backgroundColor: !selectedUnit
-         ? "gray"
-         : isSharing
-         ? "red"
-         : "green",
-         color: "white",
-         border: "none",
-         borderRadius: "10px",
-         fontSize: "16px",
-         cursor: !selectedUnit ? "not-allowed" : "pointer",
-         }}
-        >
-        {isSharing ? "🚫 Finalizar servicio" : "🚍 Iniciar servicio"}
-        </button>
-
+       disabled={!selectedUnit}
+       onClick={isSharing ? stopSharing : startSharing}
+       style={{
+       position: "fixed",
+       bottom: 20,
+       right: 20,
+       zIndex: 2000,
+       padding: "12px 20px",
+       backgroundColor: !selectedUnit
+        ? "gray"
+        : isSharing
+        ? "red"
+        : "green",
+      color: "white",
+      border: "none",
+      borderRadius: "10px",
+      fontSize: "16px",
+      cursor: !selectedUnit ? "not-allowed" : "pointer",
+    }}
+  >
+    {isSharing ? "🚫 Finalizar servicio" : "🚍 Iniciar servicio"}
+  </button>
+)}
 
       <Sidebar
         open={openDrawer}

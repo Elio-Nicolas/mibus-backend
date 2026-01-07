@@ -10,13 +10,6 @@ const jwt = require("jsonwebtoken");
 router.post("/signup", async (req, res) => {
   const { username, password, role } = req.body;
 
-  const newUser = new User({
-   username,
-   password: hashedPassword,
-   image: imagePath,
-   role: role || "PASAJERO"
-  });
-
   try {
     const exists = await User.findOne({ username });
     if (exists) {
@@ -35,7 +28,7 @@ router.post("/signup", async (req, res) => {
     res.status(201).json({ message: "Usuario creado" });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Error al registrar" });
+    res.status(500).json({ error: "Error al crear Usuario" });
   }
 });
 
@@ -56,18 +49,32 @@ router.post("/signin", async (req, res) => {
       return res.status(401).json({ error: "Credenciales inválidas" });
     }
 
-    const token = jwt.sign(
-      { userId: user._id },
-      "secreto_mibus",
-      { expiresIn: "1h" }
-    );
+    const jwt = require("jsonwebtoken");
+
+      module.exports = (req, res, next) => {
+      const authHeader = req.headers.authorization;
+
+     if (!authHeader) {
+      return res.status(401).json({ error: "No token" });
+     }
+
+      const token = authHeader.split(" ")[1];
+
+      try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      req.user = decoded; // { userId }
+      next();
+     } catch (err) {
+       return res.status(401).json({ error: "Token inválido" });
+     }
+     };
 
     res.json({
      token,
      userId: user._id,
      username: user.username,
      image: user.image,
-     role: user.role   // 👈 CLAVE
+     role: user.role  
     });
 
   } catch (err) {

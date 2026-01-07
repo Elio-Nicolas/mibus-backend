@@ -3,14 +3,16 @@ const router = express.Router();
 const User = require("../models/User");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
-const multer = require("multer");
-const { CloudinaryStorage } = require("multer-storage-cloudinary");
-const cloudinary = require("../config/cloudinary");
+//const multer = require("multer");
+//const { CloudinaryStorage } = require("multer-storage-cloudinary");
+//const cloudinary = require("../config/cloudinary");
+const requireAdmin = require("../middlewares/requireAdmin");
+const mongoose = require("mongoose");
 
 /* ======================================================
    CONFIGURACIÓN CLOUDINARY
 ====================================================== */
-
+/* 
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
@@ -20,16 +22,17 @@ const storage = new CloudinaryStorage({
   },
 });
 
-const upload = multer({ storage });
+const upload = multer({ storage }); */
 
 /* ======================================================
    REGISTRO DE USUARIO
    (por defecto USUARIO)
 ====================================================== */
 
-router.post("/signup", upload.single("image"), async (req, res) => {
+router.post("/signup", async (req, res) => {
+
+  //console.log(" BODY SIGNUP:", req.body);
   const { username, password } = req.body;
-  const imagePath = req.file ? req.file.path : null;
 
   try {
     const existingUser = await User.findOne({ username });
@@ -42,64 +45,66 @@ router.post("/signup", upload.single("image"), async (req, res) => {
     const newUser = new User({
       username,
       password: hashedPassword,
-      image: imagePath,
-      role: "USUARIO", // 🔐 SIEMPRE por defecto
+      role: "USUARIO"
     });
 
     await newUser.save();
+    //console.log(" Usuario guardado en:", newUser.username, "| DB:", mongoose.connection.name);
 
     res.status(201).json({
-      message: "Usuario creado correctamente",
+      message: "Usuario creado correctamente"
     });
   } catch (err) {
-    console.error("Error al registrar usuario:", err);
-    res.status(500).json({ error: "No se pudo registrar el usuario" });
+    console.error(" Error en signup:", err);
+    res.status(500).json({ error: "Error interno del servidor" });
   }
 });
 
-/* ======================================================
-   LOGIN
-   (DEVUELVE ROL + UNIDAD)
-====================================================== */
 
+/* =========================
+   LOGIN
+========================= */
 router.post("/signin", async (req, res) => {
   const { username, password } = req.body;
 
   try {
     const user = await User.findOne({ username });
-    if (!user || !(await bcrypt.compare(password, user.password))) {
+    if (!user) {
       return res.status(401).json({ error: "Credenciales inválidas" });
     }
 
-    const token = jwt.sign({
-     userId: user._id,
-     username: user.username,
-     role: user.role
-     },
-    process.env.JWT_SECRET,
-     { expiresIn: "1d" }
-    );
+    const ok = await bcrypt.compare(password, user.password);
+    if (!ok) {
+      return res.status(401).json({ error: "Credenciales inválidas" });
+    }
 
+    // ===== CREACION DE TOKEN ===== //
+    const token = jwt.sign(
+      { userId: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
 
     res.json({
       token,
       userId: user._id,
       username: user.username,
-      role: user.role,
-      assignedUnit: user.assignedUnit || null,
       image: user.image,
+      role: user.role
     });
+
   } catch (err) {
-    console.error("Error al iniciar sesión:", err);
-    res.status(500).json({ error: "Error en el servidor" });
+    console.error(err);
+    res.status(500).json({ error: "Error en login" });
   }
 });
+
 
 /* ======================================================
    ACTUALIZAR PERFIL
 ====================================================== */
 
-router.put("/upload/:id", upload.single("image"), async (req, res) => {
+router.put("/upload/:id", (req, res, next) => next(), async (req, res) => {
   const { username } = req.body;
   const imagePath = req.file ? req.file.path : undefined;
 
@@ -128,12 +133,8 @@ router.put("/upload/:id", upload.single("image"), async (req, res) => {
   }
 });
 
-/* ======================================================
-   (FUTURO) ASIGNAR ROL / UNIDAD
-   👉 SOLO ADMIN (lo usamos en Paso C)
-====================================================== */
 
-router.put("/assign-role/:id", async (req, res) => {
+router.put("/assign-role/:id", requireAdmin, async (req, res) => {
   const { role, assignedUnit } = req.body;
 
   try {
@@ -160,5 +161,15 @@ router.put("/assign-role/:id", async (req, res) => {
     res.status(500).json({ error: "Error en el servidor" });
   }
 });
+
+router.get("/", requireAdmin, async (req, res) => {
+  try {
+    const users = await User.find().select("-password");
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ error: "Error al obtener usuarios" });
+  }
+});
+
 
 module.exports = router;

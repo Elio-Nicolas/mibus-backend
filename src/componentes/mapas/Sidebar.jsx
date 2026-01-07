@@ -1,10 +1,7 @@
-import {
-  Drawer,
-  Typography,
-  Avatar,
-  Button
-} from "@mui/material";
+import { Drawer, Typography, Avatar, Button} from "@mui/material";
 import React from "react";
+import { useNavigate } from "react-router-dom";
+
 
 const Sidebar = ({
   open,
@@ -17,6 +14,13 @@ const Sidebar = ({
   setOpenLineasDrawer,
   setMostrarClima
 }) => {
+
+  const navigate = useNavigate();
+
+  const role =
+    localStorage.getItem("role") ||
+    sessionStorage.getItem("role");
+    
   return (
     <Drawer
       anchor="left"
@@ -93,6 +97,20 @@ const Sidebar = ({
           >
             CLIMA
           </Button>
+          {role === "ADMIN" && (
+           <Button
+             variant="contained"
+             color="warning"
+             sx={{ mt: 1, width: "80%" }}
+             onClick={() => {
+             onClose();       // cerrás el drawer
+             navigate("/admin");
+             }}
+            >
+            PANEL ADM
+           </Button>
+           )}
+
           <Button
             variant="contained"
             color="secondary"

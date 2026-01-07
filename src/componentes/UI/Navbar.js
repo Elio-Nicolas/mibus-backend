@@ -1,13 +1,30 @@
-// src/componentes/UI/Navbar.js
 import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import "./Navbar.css";
 
 const Navbar = () => {
   const navigate = useNavigate();
 
+  const [role, setRole] = useState(null);
+
+  useEffect(() => {
+    const storedRole =
+      localStorage.getItem("role") ||
+      sessionStorage.getItem("role");
+
+    setRole(storedRole);
+  }, []);
+
+  const token =
+    localStorage.getItem("token") || sessionStorage.getItem("token");
+
+  if (!token) return null;
+
   const handleLogout = () => {
-    // acá podés limpiar el token o datos del usuario si los guardás
-    navigate("/login");
+    localStorage.clear();
+    sessionStorage.clear();
+    navigate("/");
+    window.location.reload(); // 🔴 clave
   };
 
   return (
@@ -15,11 +32,14 @@ const Navbar = () => {
       <div className="navbar-logo" onClick={() => navigate("/home")}>
         MiBus
       </div>
-      <div className="navbar-actions">
-        <button className="logout-button" onClick={handleLogout}>
-          Cerrar sesión
-        </button>
-      </div>
+
+      {role && role !== "PASAJERO" && (
+        <div className="navbar-actions">
+          <button className="logout-button" onClick={handleLogout}>
+            Cerrar sesión
+          </button>
+        </div>
+      )}
     </nav>
   );
 };

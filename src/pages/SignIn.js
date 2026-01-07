@@ -24,7 +24,7 @@ const SignIn = () => {
     }
 
     try {
-      const res = await fetch("https://mibus-backend.onrender.com/api/users/signup", { //se cambio de 3001 a 4001
+      const res = await fetch("http://localhost:4001/api/users/signin", { //se cambio de 3001 a 4001  o https://mibus-backend.onrender.com/api/users/signup
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -39,7 +39,14 @@ const SignIn = () => {
 
       if (res.ok) {
         localStorage.setItem("token", data.token); // Guardamos el token
-        localStorage.setItem("user", JSON.stringify(data.user));
+        localStorage.setItem("user",JSON.stringify({
+         userId: data.userId,
+         username: data.username,
+         role: data.role,
+         image: data.image
+         })
+        );
+        
         localStorage.setItem("userId", data.userId);
         alert("USUARIO REGISTRADO ✔️");
         navigate("/mapa"); // Redirigir a ruta protegida

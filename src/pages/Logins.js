@@ -19,13 +19,17 @@ const Login = () => {
     e.preventDefault();
 
     try {
-      const res = await fetch("https://mibus-backend.onrender.com/api/users/signin", { // se cambio de 3001 a 4001
+     const res = await fetch("http://localhost:4001/api/users/signin", {
+     method: "POST",
+     headers: {
+       "Content-Type": "application/json",
+     },
+     body: JSON.stringify({
+      username: form.username,
+      password: form.password,
+     }),
+   });
 
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-        username: form.username // si o si por que no me traia el nombre del usuario
-      });
 
       const data = await res.json();
       console.log("Data recibida:", data);
@@ -36,20 +40,24 @@ const Login = () => {
         if (remember) {
           localStorage.setItem("token", data.token);
           localStorage.setItem("username", data.username);
-          localStorage.setItem("image", data.image); 
-          localStorage.setItem("userId", data.userId);
           localStorage.setItem("role", data.role);
+          localStorage.setItem("userId", data.userId);
 
-        } else {
+
+        } /*else {
           sessionStorage.setItem("token", data.token);
           sessionStorage.setItem("username", data.username);
           sessionStorage.setItem("image", data.image);
           sessionStorage.setItem("userId", data.userId); 
           sessionStorage.setItem("role", data.role); 
-        }
+        }*/
 
         //alert("Inicio de sesión exitoso");
-        navigate("/mapa");
+        if (data.role === "ADMIN") {
+          navigate("/admin");
+        } else {
+          navigate("/mapa");
+        }
       } else {
         alert("Error: " + data.error);
       }
