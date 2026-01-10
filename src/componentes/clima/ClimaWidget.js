@@ -12,7 +12,7 @@ const ClimaWidget = () => {
           (data) => setClima(data)
         );
       },
-      (error) => console.error("Error obteniendo ubicación:", error)
+      (error) => console.error("Error al obtener ubicación:", error)
     );
   }, []);
 

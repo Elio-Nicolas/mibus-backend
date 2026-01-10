@@ -38,21 +38,22 @@ const SignIn = () => {
       const data = await res.json();
 
       if (res.ok) {
-        localStorage.setItem("token", data.token); // Guardamos el token
-        localStorage.setItem("user",JSON.stringify({
-         userId: data.userId,
-         username: data.username,
-         role: data.role,
-         image: data.image
-         })
-        );
-        
-        localStorage.setItem("userId", data.userId);
+          localStorage.setItem(
+          "user",
+          JSON.stringify({
+           token: data.token,
+           userId: data.userId,
+           username: data.username,
+           role: data.role
+          })
+         );
+
         alert("USUARIO REGISTRADO ✔️");
-        navigate("/mapa"); // Redirigir a ruta protegida
-      } else {
-        alert("Error: " + data.error);
-      }
+        navigate("/mapa");
+       }
+        else {
+          alert("Error: " + data.error);
+       }
     } catch (err) {
       console.error("Error en el registro:", err);
       alert(" Error en el servidor");

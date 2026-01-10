@@ -1,4 +1,3 @@
-// MapContainerComponent.js  (REEMPLAZAR TU ARCHIVO COMPLETO)
 import { useEffect, useRef, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap, GeoJSON } from "react-leaflet";
 import L from "leaflet";
@@ -66,29 +65,6 @@ const getRoleFromToken = () => {
 };
 
 
-/* === NEW: createColoredIcon ===
-   Genera un ícono SVG dinámico con color y forma.
-   (Usalo en los Markers: icon={createColoredIcon(bus.color, bus.shape)})
-
-const createColoredIcon = (color = "#007bff", shape = "circle") => {
-  const svgInner =
-    shape === "square"
-      ? `<rect x="4" y="4" width="32" height="32" rx="6" fill="${color}" stroke="black" stroke-width="2"/>`
-      : `<circle cx="20" cy="20" r="12" fill="${color}" stroke="black" stroke-width="2"/>`;
-
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40">${svgInner}</svg>`;
-
-  const encoded = encodeURIComponent(svg); // <- la clave: encodear
-
-  return new L.Icon({
-    iconUrl: `data:image/svg+xml;charset=UTF-8,${encoded}`,
-    iconSize: [40, 40],
-    iconAnchor: [20, 40],
-    popupAnchor: [0, -35],
-  });
-};
-*/
-
 // ================= ICONO UNIDAD / COLECTIVO =================
 const createBusIcon = (color = "#007bff") => {
   return L.divIcon({
@@ -135,8 +111,6 @@ const MapContainerComponent = () => {
   const [image, setImage] = useState(localStorage.getItem("image") || sessionStorage.getItem("image") || "");
   const role = localStorage.getItem("role") || sessionStorage.getItem("role");
 
-  // ==== VOLVER A MAPA DESDE ADMIN ====
-  //const navigate = useNavigate();
 
   /* === CRITICO: asegurar que exista un userId único por dispositivo ===
      Si no existe en localStorage/sessionStorage, lo creamos (crypto.randomUUID o fallback).
@@ -187,7 +161,7 @@ const startSharing = () => {
   (pos) => {
    const { latitude, longitude, accuracy, speed } = pos.coords;
 
-    console.log("📡 GPS:", {
+    console.log("📡 GPS:", { //prueba de campo
       lat: latitude,
       lon: longitude,
       accuracy,
@@ -257,7 +231,7 @@ const startSharing = () => {
   /* ==== STOP SHARING ====
      - Detiene geolocalización
      - Emite 'stopSharing' con el userId (backend decide si borrar o marcar offline)
-     - NO borramos la posición local (si querés que desaparezca, descomentá setUserPosition(null))
+     - NO borramos la posición local (para hacerlo descomentar setUserPosition(null))
   */
   const stopSharing = () => {
     setIsSharing(false);
@@ -267,7 +241,7 @@ const startSharing = () => {
       watchIdRef.current = null;
     }
 
-    // opcionalmente borrar posición local:
+    // opcionalmente borra la posición local:
     // setUserPosition(null);
 
     socket.emit("stopSharing", storedUserId);

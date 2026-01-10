@@ -16,56 +16,50 @@ const Login = () => {
   };
 
   const handleLogin = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    try {
-     const res = await fetch("http://localhost:4001/api/users/signin", {
-     method: "POST",
-     headers: {
-       "Content-Type": "application/json",
-     },
-     body: JSON.stringify({
-      username: form.username,
-      password: form.password,
-     }),
-   });
+  try {
+    const res = await fetch("http://localhost:4001/api/users/signin", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        username: form.username,
+        password: form.password,
+      }),
+    });
 
+    const data = await res.json();
+    console.log("Data recibida:", data);
 
-      const data = await res.json();
-      console.log("Data recibida:", data);
+    if (res.ok) {
+      localStorage.setItem(
+        "user",
+        JSON.stringify({
+          token: data.token,
+          userId: data.userId,
+          username: data.username,
+          role: data.role,
+        })
+      );
 
-      if (res.ok) {
-        alert(` Usuario encontrado: ${data.username}`);
-        // Guardar token
-        if (remember) {
-          localStorage.setItem("token", data.token);
-          localStorage.setItem("username", data.username);
-          localStorage.setItem("role", data.role);
-          localStorage.setItem("userId", data.userId);
+      alert(`Usuario encontrado: ${data.username}`);
 
-
-        } /*else {
-          sessionStorage.setItem("token", data.token);
-          sessionStorage.setItem("username", data.username);
-          sessionStorage.setItem("image", data.image);
-          sessionStorage.setItem("userId", data.userId); 
-          sessionStorage.setItem("role", data.role); 
-        }*/
-
-        //alert("Inicio de sesión exitoso");
-        if (data.role === "ADMIN") {
-          navigate("/admin");
-        } else {
-          navigate("/mapa");
-        }
+      if (data.role === "ADMIN") {
+        navigate("/admin");
       } else {
-        alert("Error: " + data.error);
+        navigate("/mapa");
       }
-    } catch (err) {
-      console.error("Error al iniciar sesión:", err);
-      alert("Error en el servidor");
+    } else {
+      alert("Error: " + data.error);
     }
-  };
+
+  } catch (err) {
+    console.error("Error al iniciar sesión:", err);
+    alert("Error en el servidor");
+  }
+};
 
   return (
     <div className="login-container">

@@ -21,14 +21,13 @@ router.post("/signup", async (req, res) => {
     const user = new User({
       username,
       password: hashedPassword,
+      role,
     });
 
     await user.save();
-
     res.status(201).json({ message: "Usuario creado" });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Error al crear Usuario" });
+    res.status(500).json({ error: "Error al crear usuario" });
   }
 });
 
@@ -49,36 +48,19 @@ router.post("/signin", async (req, res) => {
       return res.status(401).json({ error: "Credenciales inválidas" });
     }
 
-    const jwt = require("jsonwebtoken");
-
-      module.exports = (req, res, next) => {
-      const authHeader = req.headers.authorization;
-
-     if (!authHeader) {
-      return res.status(401).json({ error: "No token" });
-     }
-
-      const token = authHeader.split(" ")[1];
-
-      try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      req.user = decoded; // { userId }
-      next();
-     } catch (err) {
-       return res.status(401).json({ error: "Token inválido" });
-     }
-     };
+    const token = jwt.sign(
+      { userId: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "8h" }
+    );
 
     res.json({
-     token,
-     userId: user._id,
-     username: user.username,
-     image: user.image,
-     role: user.role  
+      token,
+      userId: user._id,
+      username: user.username,
+      role: user.role,
     });
-
   } catch (err) {
-    console.error(err);
     res.status(500).json({ error: "Error en login" });
   }
 });
