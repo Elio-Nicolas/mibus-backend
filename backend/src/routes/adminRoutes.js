@@ -1,33 +1,52 @@
 const express = require("express");
 const router = express.Router();
+const { auth, allowRoles } = require("../middlewares/auth");
 
-const auth = require("../middlewares/auth");
-const requireAdmin = require("../middlewares/requireAdmin");
+//const auth = require("../middlewares/auth");
+//const allowRoles = require("../middlewares/allowRoles");
+//const requireAdmin = require("../middlewares/requireAdmin");
 const User = require("../models/User");
+
+
+console.log("ADMIN ROUTES CARGADAS");
+router.use((req, res, next) => {
+  console.log("ENTRA A ADMIN ROUTES:", req.method, req.url);
+  next();
+});
 
 /* =========================
    TEST ADMIN
 ========================= */
-router.get("/ping", auth, requireAdmin, (req, res) => {
-  res.json({ ok: true });
+router.get("/ping", auth, allowRoles("ADMIN"), (req, res) => {
+
+    res.json({ ok: true });
 });
 
 /* =========================
    LISTAR USUARIOS
 ========================= */
-router.get("/users", auth, requireAdmin, async (req, res) => {
-  try {
-    const users = await User.find().select("username role assignedUnit");
+router.get(
+  "/users",
+  auth,
+  allowRoles("ADMIN"),
+  async (req, res) => {
+    console.log("ADMIN USERS by:", req.user.userId);
+    const users = await User.find({}, "-password");
     res.json(users);
-  } catch (err) {
-    res.status(500).json({ error: "Error obteniendo usuarios" });
   }
-});
+);
+
 
 /* =========================
    ELIMINAR USUARIO (ADMIN)
 ========================= */
-router.delete("/users/:id", auth, requireAdmin, async (req, res) => {
+router.delete(
+  "/users/:id",
+  auth,
+  allowRoles("ADMIN"),
+  async (req, res) => {
+
+
   try {
     const { id } = req.params;
 
@@ -48,7 +67,13 @@ router.delete("/users/:id", auth, requireAdmin, async (req, res) => {
 /* =========================
    CAMBIAR ROL (ADMIN)
 ========================= */
-router.put("/users/:id/role", auth, requireAdmin, async (req, res) => {
+router.put(
+  "/users/:id/role",
+  auth,
+  allowRoles("ADMIN"),
+  async (req, res) => {
+
+
   const { id } = req.params;
   const { role } = req.body;
 
@@ -79,24 +104,33 @@ router.put("/users/:id/role", auth, requireAdmin, async (req, res) => {
 /* =========================
    ASIGNAR UNIDAD A CHOFER
 ========================= */
-router.put("/users/:id/unit", auth, requireAdmin, async (req, res) => {
-  const { unit } = req.body;
+// PUT /api/admin/users/:id/unit
+router.put(
+  "/users/:id/unit",
+  auth,
+  allowRoles("ADMIN"),
+  async (req, res) => {
+    try {
+      const { unit } = req.body;
 
-  const user = await User.findById(req.params.id);
-  if (!user) {
-    return res.status(404).json({ error: "Usuario no encontrado" });
+      const user = await User.findByIdAndUpdate(
+        req.params.id,
+        { assignedUnit: unit },
+        { new: true }
+      );
+
+      if (!user) {
+        return res.status(404).json({ error: "Usuario no encontrado" });
+      }
+
+      res.json(user);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Error actualizando unidad" });
+    }
   }
+);
 
-  if (user.role !== "CHOFER") {
-    return res.status(400).json({
-      error: "Solo se puede asignar unidad a choferes",
-    });
-  }
 
-  user.assignedUnit = unit || null;
-  await user.save();
-
-  res.json({ ok: true, assignedUnit: user.assignedUnit });
-});
 
 module.exports = router;

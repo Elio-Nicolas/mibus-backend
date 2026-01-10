@@ -8,11 +8,10 @@ const UserSchema = new mongoose.Schema({
   // ===== ROLES ===== //
   role: {
     type: String,
-    enum: ["ADMIN", "CHOFER", "USUARIO"],
+    enum: ["ADMIN", "CHOFER", "USUARIO","INSPECTOR"],
     default: "USUARIO",
   },
 
-  // ===== SOLO CHOFER ===== //
   assignedUnit: {
     type: String,
     default: null,

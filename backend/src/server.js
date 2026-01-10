@@ -25,8 +25,14 @@ const io = socketIo(server, {
 const userRoutes = require("./routes/userRoutes");
 app.use("/api/users", userRoutes);
 
+
 const adminRoutes = require("./routes/adminRoutes");
-app.use("/api/admin", require("./routes/adminRoutes"));
+app.use("/api/admin", adminRoutes);
+
+
+const inspectorRoutes = require("./routes/inspector");
+app.use("/api/inspector", inspectorRoutes);
+
 
 /* ======================= MONGO ======================= */
 mongoose.connect(
