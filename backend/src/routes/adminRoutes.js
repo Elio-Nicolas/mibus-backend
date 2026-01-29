@@ -1,16 +1,16 @@
 const express = require("express");
 const router = express.Router();
 const { auth, allowRoles } = require("../middlewares/auth");
-
+const bcrypt = require("bcrypt"); 
 //const auth = require("../middlewares/auth");
 //const allowRoles = require("../middlewares/allowRoles");
 //const requireAdmin = require("../middlewares/requireAdmin");
 const User = require("../models/User");
 
 
-console.log("ADMIN ROUTES CARGADAS");
+//console.log("ADMIN ROUTES CARGADAS");
 router.use((req, res, next) => {
-  console.log("ENTRA A ADMIN ROUTES:", req.method, req.url);
+  //console.log("ENTRA A ADMIN ROUTES:", req.method, req.url);
   next();
 });
 
@@ -131,6 +131,82 @@ router.put(
   }
 );
 
+/* =========================
+   ASIGNAR LINEA A CHOFER
+========================= */
+// PUT /api/admin/users/:id/line
+router.put(
+  "/users/:id/line",
+  auth,
+  allowRoles("ADMIN"),
+  async (req, res) => {
+    try {
+      const { line } = req.body;
 
+      const user = await User.findByIdAndUpdate(
+        req.params.id,
+        { assignedLine: line },
+        { new: true }
+      );
+
+      if (!user) {
+        return res.status(404).json({ error: "Usuario no encontrado" });
+      }
+
+      res.json(user);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Error actualizando línea" });
+    }
+  }
+);
+
+/* =================================
+   CREAR USUARIO DESDE PANEL ADMIN
+=================================== */
+router.post(
+  "/users",
+  auth,
+  allowRoles("ADMIN"),
+  async (req, res) => {
+    try {
+      const { username, password, role, assignedUnit } = req.body;
+
+      if (!username || !password) {
+        return res.status(400).json({ error: "Username y password requeridos" });
+      }
+
+      const exists = await User.findOne({ username });
+      if (exists) {
+        return res.status(400).json({ error: "El usuario ya existe" });
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      const newUser = new User({
+        username,
+        password: hashedPassword,
+        role: role || "USUARIO",
+        assignedUnit: assignedUnit || null,
+      });
+
+      await newUser.save();
+
+      res.status(201).json({
+        message: "Usuario creado correctamente",
+        user: {
+          _id: newUser._id,
+          username: newUser.username,
+          role: newUser.role,
+          assignedUnit: newUser.assignedUnit,
+        },
+      });
+
+    } catch (err) {
+      console.error("ERROR CREANDO USUARIO:", err);
+      res.status(500).json({ error: "Error creando usuario" });
+    }
+  }
+);
 
 module.exports = router;
