@@ -122,3 +122,33 @@
   margin-top: 10px;
   border: 2px solid #007BFF;
 }
+
+/* 🔥 RESET TOTAL para divIcon */
+.leaflet-div-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* 🔵 Punto principal del colectivo */
+.bus-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--bus-color);
+  box-shadow:
+    0 0 6px var(--bus-color),
+    0 0 12px var(--bus-color),
+    0 0 18px var(--bus-color);
+}
+
+/* ✨ Estela / glow */
+.bus-dot::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  background: var(--bus-color);
+  opacity: 0.3;
+  filter: blur(8px);
+}
+

@@ -1,11 +1,15 @@
 import { Navigate } from "react-router-dom";
 
-const ProtectedRoute = ({ children }) => {
-  const token = localStorage.getItem("token");
+const ProtectedRoute = ({ children, allowedRoles }) => {
+  const stored = localStorage.getItem("user");
+  const user = stored ? JSON.parse(stored) : null;
 
-  if (!token) {
-    alert("⚠️ Tenés que iniciar sesión para acceder.");
+  if (!user || !user.token) {
     return <Navigate to="/login" />;
+  }
+
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
+    return <Navigate to="/no-autorizado" />;
   }
 
   return children;

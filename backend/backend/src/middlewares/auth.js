@@ -33,7 +33,6 @@ const allowRoles = (...roles) => {
   };
 };
 
-/* 🔴 ESTO ES CLAVE 🔴 */
 module.exports = {
   auth,
   allowRoles,

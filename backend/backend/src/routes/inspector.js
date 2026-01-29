@@ -13,7 +13,7 @@ router.get(
   async (req, res) => {
     try {
       const drivers = await User.find({ role: "CHOFER" })
-        .select("username assignedUnit");
+        .select("username assignedUnit assignedLine location");
 
       res.json(drivers);
     } catch (err) {
@@ -21,5 +21,6 @@ router.get(
     }
   }
 );
+
 
 module.exports = router;

@@ -20,6 +20,7 @@ const LineasDrawer = ({ open, onClose, buses = [], onLineaSelect }) => {
       anchor="bottom"
       open={open}
       onClose={onClose}
+      container={document.getElementById("map-wrapper")}
       PaperProps={{
         sx: {
           backgroundColor: "transparent",

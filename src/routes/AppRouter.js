@@ -1,90 +1,90 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import Login from "../pages/Logins";
-import Home from "../pages/Home";
 import SignUp from "../pages/SignUp";
 import MapContainerComponent from "../componentes/mapas/MapContainerComponent";
-import React, { useState, useEffect } from "react";
+//import ChoferPage from "../pages/choferPanel";
 import AdminPanel from "../pages/AdminPanel";
-
+import InspectorPage from "../pages/InspectorPanel";
+//import ChoferPage from "../componentes/mapas/MapContainerComponent";
+import PasajeroPage from "../componentes/mapas/MapContainerComponent";
+import NoAutorizado from "../pages/NoAutorizado";
+import ChoferPanel from "../pages/choferPanel";
 
 /* ================= PROTECTED ROUTE ================= */
-const ProtectedRoute = ({ children }) => {
-  const [checkingAuth, setCheckingAuth] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+const ProtectedRoute = ({ children, allowedRoles }) => {
+  const stored = localStorage.getItem("user");
+  const user = stored ? JSON.parse(stored) : null;
 
-  useEffect(() => {
-    const token =
-      localStorage.getItem("token") || sessionStorage.getItem("token");
-    if (token) setIsAuthenticated(true);
-    setCheckingAuth(false);
-  }, []);
+  if (!user || !user.token) {
+    return <Navigate to="/login" replace />;
+  }
 
-  if (checkingAuth) return <div>Cargando...</div>;
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
+    return <Navigate to="/no-autorizado" replace />;
+  }
 
   return children;
 };
 
-const isAdmin = () => {
-  const token = localStorage.getItem("token");
-  if (!token) return false;
-
-  try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    return payload.role === "ADMIN";
-  } catch {
-    return false;
-  }
-};
-
-const AdminRoute = ({ children }) => {
-  const token =
-    localStorage.getItem("token") || sessionStorage.getItem("token");
-
-  if (!token) {
-    return <Navigate to="/login" replace />;
-  }
-
-  try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
-
-    if (payload.role !== "ADMIN") {
-      return <Navigate to="/" replace />;
-    }
-
-    return children;
-  } catch {
-    return <Navigate to="/login" replace />;
-  }
-};
-
-
 /* ================= ROUTER ================= */
 const AppRouter = () => {
-  return (
-    
-    <Routes>
-      console.log("🔥 APP ROUTER CARGADO");
+  //console.log("🔥 APP ROUTER CARGADO");
 
-         {/* 🔐 AUTH */}
+  return (
+    <Routes>
+      {/* 🔐 AUTH */}
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<SignUp />} />
+      <Route path="/no-autorizado" element={<NoAutorizado />} />
 
-        {/* 🔒 INTERNO */}
-
-        <Route
+      {/* 🔒 POR ROL */}
+      <Route
         path="/admin"
-          element={
-          // <AdminRoute>
+        element={
+          <ProtectedRoute allowedRoles={["ADMIN"]}>
             <AdminPanel />
-         // </AdminRoute>
-         }
-     />
+          </ProtectedRoute>
+        }
+      />
 
-      
-         {/* 🌍 PUBLICO */}
-      <Route path="/" element={<MapContainerComponent />} />
-      <Route path="/mapa-publico" element={<MapContainerComponent />} />
+      <Route
+        path="/inspector"
+        element={
+          <ProtectedRoute allowedRoles={["INSPECTOR"]}>
+            <InspectorPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/chofer"
+        element={
+          <ProtectedRoute allowedRoles={["CHOFER"]}>
+            <ChoferPanel />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/pasajero"
+        element={
+          <ProtectedRoute allowedRoles={["PASAJERO"]}>
+            <PasajeroPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* 🌍 PÚBLICO */}
+      <Route path="/" element={
+       <div style={{ height: "100vh", width: "100vw" }}>
+         <MapContainerComponent />
+       </div>
+        }/>
+      <Route path="/mapa" element={
+        <div style={{ height: "100vh", width: "100vw" }}>
+         <MapContainerComponent />
+        </div>
+        }/>
 
       {/* fallback */}
       <Route path="*" element={<Navigate to="/" />} />

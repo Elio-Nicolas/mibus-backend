@@ -46,11 +46,11 @@ const Login = () => {
 
       alert(`Usuario encontrado: ${data.username}`);
 
-      if (data.role === "ADMIN") {
-        navigate("/admin");
-      } else {
-        navigate("/mapa");
-      }
+      if (data.role === "ADMIN") navigate("/admin"); 
+      else if (data.role === "INSPECTOR") navigate("/inspector");
+      else if (data.role === "CHOFER") navigate("/chofer");
+      else if (data.role === "PASAJERO") navigate("/mapa");
+      else if (data.role === "USUARIO") navigate("/mapa");
     } else {
       alert("Error: " + data.error);
     }
@@ -62,14 +62,17 @@ const Login = () => {
 };
 
   return (
-    <div className="login-container">
-      <h2 className="titulo">MiBus</h2>
+    <div className="login-layout">
+      
+      {/* IZQUIERDA – FORM */}
+      <div className="login-left">
+        <h1 className="logo">MiBus</h1>
 
-      <img src={busImage} alt="Bus" className="bus-image" />
+        <p className="subtitle">
+          Iniciá sesión en tu cuenta
+        </p>
 
-      <form onSubmit={handleLogin} className="login-form">
-        <div className="input-group">
-          <label> </label>
+        <form onSubmit={handleLogin} className="login-form">
           <input
             type="text"
             name="username"
@@ -78,10 +81,7 @@ const Login = () => {
             onChange={handleChange}
             required
           />
-        </div>
 
-        <div className="input-group">
-          <label> </label>
           <input
             type="password"
             name="password"
@@ -90,32 +90,38 @@ const Login = () => {
             onChange={handleChange}
             required
           />
-        </div>
 
-        <div className="checkbox-group">
-          <input
-            type="checkbox"
-            id="remember"
-            checked={remember}
-            onChange={() => setRemember(!remember)}
-          />
-          <label htmlFor="remember">Recordar Contraseña</label>
-        </div>
+          <div className="remember">
+            <input
+              type="checkbox"
+              checked={remember}
+              onChange={() => setRemember(!remember)}
+            />
+            <span>Recordar contraseña</span>
+          </div>
 
-        <button type="submit" className="btn-login">
-          CONTINUAR
-        </button>
+          <button type="submit" className="btn-primary">
+            CONTINUAR
+          </button>
 
-         {/* BOTÓN PARA IR A SIGNIN */}
-        <button
-         type="button"
-         className="btn-sigin"
-         onClick={() => navigate("/signin")}
-        >
-         CREAR CUENTA
-        </button>
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() => navigate("/signin")}
+          >
+            CREAR CUENTA
+          </button>
+        </form>
+      </div>
 
-      </form>
+      {/* DERECHA – HERO */}
+      <div className="login-right">
+        <img src={busImage} alt="MiBus" />
+        <h2>Monitoreo inteligente de transporte</h2>
+        <p>
+          Visualizá colectivos en tiempo real, optimizá recorridos y mejorá la experiencia urbana.
+        </p>
+      </div>
     </div>
   );
 };

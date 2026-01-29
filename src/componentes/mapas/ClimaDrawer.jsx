@@ -7,6 +7,7 @@ const ClimaDrawer = ({ open, onClose, children }) => {
       anchor="right"
       open={open}
       onClose={onClose}
+      container={document.getElementById("map-wrapper")}
       PaperProps={{
         sx: {
           width: 300,
