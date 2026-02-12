@@ -4,7 +4,7 @@ import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
 
-/* 👇 Este componente SOLO sirve para avisarle a Leaflet */
+/* componente SOLO sirve para avisarle a Leaflet */
 function ResizeFix() {
   const map = useMap();
 

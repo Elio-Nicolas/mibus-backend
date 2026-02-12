@@ -1,14 +1,18 @@
 const express = require("express");
-const router = express.Router();
-const User = require("../models/User");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const User = require("../models/User");
 
-/* =========================
-   REGISTRO
-========================= */
+const router = express.Router();
+
+const ROLES = ["ADMIN", "CHOFER", "INSPECTOR", "USUARIO"];
+
 router.post("/signup", async (req, res) => {
-  const { username, password, role } = req.body;
+  const { username, password } = req.body;
+
+  if (!username || !password) {
+    return res.status(400).json({ error: "Datos incompletos" });
+  }
 
   try {
     const exists = await User.findOne({ username });
@@ -21,21 +25,23 @@ router.post("/signup", async (req, res) => {
     const user = new User({
       username,
       password: hashedPassword,
-      role,
+      role: "USUARIO", // por defecto
     });
 
     await user.save();
+
     res.status(201).json({ message: "Usuario creado" });
   } catch (err) {
-    res.status(500).json({ error: "Error al crear usuario" });
+    res.status(500).json({ error: "Error creando usuario" });
   }
 });
 
-/* =========================
-   LOGIN
-========================= */
 router.post("/signin", async (req, res) => {
   const { username, password } = req.body;
+
+  if (!username || !password) {
+    return res.status(400).json({ error: "Datos incompletos" });
+  }
 
   try {
     const user = await User.findOne({ username });
@@ -49,9 +55,12 @@ router.post("/signin", async (req, res) => {
     }
 
     const token = jwt.sign(
-      { userId: user._id, role: user.role },
+      {
+        userId: user._id,
+        role: user.role,
+      },
       process.env.JWT_SECRET,
-      { expiresIn: "8h" }
+      { expiresIn: "1h" }
     );
 
     res.json({

@@ -8,7 +8,7 @@ import {
   useMap,
   GeoJSON,
 } from "react-leaflet";
-
+import AdminHeader from "../admin/AdminHeader";
 import { useLocation, useNavigate } from "react-router-dom";
 //import BusTrailLayer from "./BusTrailLayer";
 import L from "leaflet";
@@ -210,6 +210,7 @@ const MapContainerComponent = () => {
   const location = useLocation();
   //const fromAdmin = location.state?.fromAdmin === true;
   const navigate = useNavigate();
+  
 
 
   //* =============== MOCK ============== /
@@ -228,18 +229,38 @@ const MapContainerComponent = () => {
   // === SELECCIONA UNIDAD ===
   const [selectedUnit, setSelectedUnit] = useState(localStorage.getItem("unitId") || "");
 
-  // === USER INFO (username) ===
-  const [username] = useState(localStorage.getItem("username") || sessionStorage.getItem("username") || "Desconocido");
-  //const [image, setImage] = useState(localStorage.getItem("image") || sessionStorage.getItem("image") || "");
-  const storedUser = localStorage.getItem("user");
-  const user = storedUser ? JSON.parse(storedUser) : null;
+ // === USER INFO ===
+const [username] = useState(
+  localStorage.getItem("username") ||
+  sessionStorage.getItem("username") ||
+  "Desconocido"
+);
 
-  const role = user?.role ?? "GUEST";
-  const ui = ROLE_UI[role] || ROLE_UI.GUEST;
+const storedUser = localStorage.getItem("user");
+let user = null;
+let role = "GUEST";
 
-  const assignedLine = localStorage.getItem("assignedLine") || sessionStorage.getItem("assignedLine");
-  
+//tomamos el user si realmente existe y tiene role
+if (storedUser) {
+  try {
+    const parsed = JSON.parse(storedUser);
+    if (parsed?.role && ROLE_UI[parsed.role]) {
+      user = parsed;
+      role = parsed.role;
+    }
+  } catch (e) {
+    role = "GUEST";
+  }
+}
 
+const ui = ROLE_UI[role] || ROLE_UI.GUEST;
+
+// Header público = usuarios que NO tienen cerrar sesión
+const showPublicHeader = !ui.cerrarSesion;
+
+const assignedLine =
+  localStorage.getItem("assignedLine") ||
+  sessionStorage.getItem("assignedLine");
 
   /* === CRITICO: asegurar que exista un userId único por dispositivo ===
      Si no existe en localStorage/sessionStorage, lo creamos (crypto.randomUUID o fallback).
@@ -503,7 +524,6 @@ const startSharing = () => {
     <div id="map-wrapper" style={{ position: "relative", height: "100%", width: "100%", overflow: "hidden" }}>
 
       {/* MAPA */}
-
      <MapContainer
   center={DEFAULT_POSITION}
   zoom={17}
@@ -739,7 +759,7 @@ const startSharing = () => {
         position: "fixed",
         bottom: 20,
         right: 20,
-        zIndex: 2000,
+        zIndex: 2000, 
         backgroundColor: !selectedUnit
           ? "#9e9e9e"
           : isSharing

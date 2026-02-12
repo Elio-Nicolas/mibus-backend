@@ -2,13 +2,12 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import Login from "../pages/Logins";
 import SignUp from "../pages/SignUp";
 import MapContainerComponent from "../componentes/mapas/MapContainerComponent";
-//import ChoferPage from "../pages/choferPanel";
 import AdminPanel from "../pages/AdminPanel";
 import InspectorPage from "../pages/InspectorPanel";
-//import ChoferPage from "../componentes/mapas/MapContainerComponent";
 import PasajeroPage from "../componentes/mapas/MapContainerComponent";
 import NoAutorizado from "../pages/NoAutorizado";
 import ChoferPanel from "../pages/choferPanel";
+import AdminHeader from "../componentes/admin/AdminHeader";
 
 /* ================= PROTECTED ROUTE ================= */
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -28,16 +27,16 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 
 /* ================= ROUTER ================= */
 const AppRouter = () => {
-  //console.log("🔥 APP ROUTER CARGADO");
+  //console.log("APP ROUTER CARGADO");
 
   return (
     <Routes>
-      {/* 🔐 AUTH */}
+      {/* AUTH */}
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<SignUp />} />
       <Route path="/no-autorizado" element={<NoAutorizado />} />
 
-      {/* 🔒 POR ROL */}
+      {/* POR ROL */}
       <Route
         path="/admin"
         element={
@@ -74,14 +73,16 @@ const AppRouter = () => {
         }
       />
 
-      {/* 🌍 PÚBLICO */}
+      {/* PÚBLICO */}
       <Route path="/" element={
        <div style={{ height: "100vh", width: "100vw" }}>
+         <AdminHeader/>
          <MapContainerComponent />
        </div>
         }/>
       <Route path="/mapa" element={
         <div style={{ height: "100vh", width: "100vw" }}>
+          <AdminHeader/>
          <MapContainerComponent />
         </div>
         }/>

@@ -43,6 +43,9 @@ app.use("/api/inspector", inspectorRoutes);
 const choferRoutes = require("./routes/chofer");
 app.use("/api/chofer", choferRoutes);
 
+const authRoutes = require("./routes/Auth");
+app.use("/api/auth", authRoutes);
+
 
 const TripEvent = require("./models/TripEvent");
 /* ======================= MONGO ======================= */

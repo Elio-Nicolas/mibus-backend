@@ -1,6 +1,10 @@
 import React, { useEffect, useState, useRef } from "react";
 import MapContainerComponent from "../componentes/mapas/MapContainerComponent";
 import { socket } from "../socket";
+import AdminHeader from "../componentes/admin/AdminHeader";
+import { useThemeMode } from "../context/ThemeContext";
+import { useNavigate } from "react-router-dom";
+import { Box } from "@mui/material";
 
 const safeFetch = async (url, options = {}) => {
   const res = await fetch(url, options);
@@ -11,13 +15,13 @@ const safeFetch = async (url, options = {}) => {
   return res.json();
 };
 
-console.log("🔁 RENDER del componente");
+//console.log("🔁 RENDER del componente");
 
 
 const ChoferPanel = () => {
   const stored = JSON.parse(localStorage.getItem("user"));
   const token = stored?.token;
-
+  const navigate = useNavigate ();
   const [chofer, setChofer] = useState(null);
   const [position, setPosition] = useState(null);
   const [sharing, setSharing] = useState(false);
@@ -27,7 +31,7 @@ const ChoferPanel = () => {
   const [elapsedTime, setElapsedTime] = useState(0);
   const watchIdRef = useRef(null);
   const [startTime, setStartTime] = useState(null);
-
+  const { mode, toggleMode } = useThemeMode();
 
   // =========================
   // CARGAR CHOFER Y SESIONES
@@ -161,6 +165,14 @@ const ChoferPanel = () => {
     }
   };
 
+  // =====================  HANDLES  ===========================  //
+
+  const handleLogout = () => {
+  localStorage.removeItem("token"); // o lo que uses
+  navigate("/login");
+ };
+
+
   const handleToggleSharing = () => {
     if (!sharing) {
       startTracking();
@@ -242,51 +254,89 @@ const ChoferPanel = () => {
   // =========================
   // RENDER
   // =========================
-  return (
-    <div style={{ display: "flex", height: "100vh" }}>
-      <div style={{ width: 320, background: "#1f2933", color: "#fff", padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
-        <h3>Panel Chofer</h3>
+ return (
+  <Box sx={{ height: "100vh", display: "flex", flexDirection: "column" }}>
+    {/* HEADER */}
+    <AdminHeader
+      title="Chofer"
+      subtitle="Panel de monitoreo"
+      showDemo={false}
+      onLogout={handleLogout}
+      onToggleMode={toggleMode}
+    />
+
+    {/* CONTENIDO */}
+    <Box sx={{ flex: 1, display: "flex", minHeight: 0 }}>
+      {/* SIDEBAR */}
+      <Box
+        sx={{
+          width: 370,
+          borderRight: "1px solid",
+          borderColor: "divider",
+          p: 2,
+          display: "flex",
+          flexDirection: "column",
+          gap: 1.5,
+          overflow: "auto",
+        }}
+      >
         <div><strong>Nombre:</strong> {chofer.username}</div>
         <div><strong>Unidad:</strong> {chofer.assignedUnit}</div>
         <div><strong>Línea:</strong> {chofer.assignedLine}</div>
 
         <p>
           <strong>Estado:</strong>{" "}
-          <span style={{ color: unitStatus === "EN SERVICIO" ? "#4ade80" : "#f87171", fontWeight: "bold" }}>
+          <span
+            style={{
+              color: unitStatus === "EN SERVICIO" ? "#4ade80" : "#f87171",
+              fontWeight: "bold",
+            }}
+          >
             {unitStatus}
           </span>
         </p>
- <p>
-  <strong>Inicio:</strong>{" "}
-  {
-    events
-      .filter(e => e.type === "INICIO")
-      .slice(0, 1)
-      .map((e, i) => (
-        <span key={i}>
-          {new Date(e.time).toLocaleString()}
-        </span>
-      ))
-  }
-</p>
 
-        <p><strong>Tiempo en recorrido:</strong> <span style={{ fontWeight: "bold" }}>
-          {activeSession && activeSession.status === "ACTIVE" ? formatElapsed(elapsedTime) : "00:00"}
-        </span></p>
+        <p>
+          <strong>Inicio:</strong>{" "}
+          {events
+            .filter(e => e.type === "INICIO")
+            .slice(0, 1)
+            .map((e, i) => (
+              <span key={i}>{new Date(e.time).toLocaleString()}</span>
+            ))}
+        </p>
 
-        <button onClick={handleToggleSharing} disabled={!activeSession || activeSession.endTime}>
+        <p>
+          <strong>Tiempo en recorrido:</strong>{" "}
+          <span style={{ fontWeight: "bold" }}>
+            {activeSession && activeSession.status === "ACTIVE"
+              ? formatElapsed(elapsedTime)
+              : "00:00"}
+          </span>
+        </p>
+
+        <button
+          onClick={handleToggleSharing}
+          disabled={!activeSession || activeSession.endTime}
+        >
           {sharing ? "Detener ubicación" : "Compartir ubicación"}
         </button>
 
-        <button onClick={handleInicio} disabled={!!activeSession && activeSession.status === "ACTIVE"}>
+        <button
+          onClick={handleInicio}
+          disabled={!!activeSession && activeSession.status === "ACTIVE"}
+        >
           Iniciar recorrido
         </button>
 
-        <button onClick={handleFinRecorrido} disabled={!activeSession || activeSession.endTime}>
+        <button
+          onClick={handleFinRecorrido}
+          disabled={!activeSession || activeSession.endTime}
+        >
           Finalizar recorrido
         </button>
 
-        <div style={{ marginTop: 16 }}>
+        <Box sx={{ mt: 2 }}>
           <strong>Últimos eventos</strong>
           <table style={{ width: "100%", fontSize: 12, marginTop: 8 }}>
             <tbody>
@@ -299,14 +349,17 @@ const ChoferPanel = () => {
               ))}
             </tbody>
           </table>
-        </div>
-      </div>
+        </Box>
+      </Box>
 
-      <div style={{ flex: 1 }}>
+      {/* MAPA */}
+      <Box sx={{ flex: 1, minWidth: 0 }}>
         <MapContainerComponent position={position} />
-      </div>
-    </div>
-  );
+      </Box>
+    </Box>
+  </Box>
+);
+
 };
 
 export default ChoferPanel;

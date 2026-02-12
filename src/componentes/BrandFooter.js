@@ -2,8 +2,9 @@ import React from "react";
 
 const BrandFooter = () => {
   return (
-    <div style={styles.footer}>
-     <span style={styles.soft}>SOFTWARE</span> IO Red 
+    <div style={styles.footer} className="max-w-7xl mx-auto px-4 text-sm text-gray-500 text-center">
+      IO Red <span style={styles.soft}>SOFTWARE</span> 
+     © {new Date().getFullYear()} . Todos los derechos reservados.
     </div>
   );
 };

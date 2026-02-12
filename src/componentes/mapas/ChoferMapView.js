@@ -44,7 +44,7 @@ const ChoferMapView = ({ posicion }) => {
   return (
     <div style={{ height: "100vh", width: "100%" }}>
      <MapContainer
-  key="chofer-map"   // 👈 CLAVE FIJA
+  key="chofer-map"   //  CLAVE
   center={[-33.6757, -65.4578]}
   zoom={13}
   style={{ height: "100%", width: "100%" }}

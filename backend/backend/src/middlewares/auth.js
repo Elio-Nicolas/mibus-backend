@@ -1,5 +1,9 @@
 const jwt = require("jsonwebtoken");
 
+if (!process.env.JWT_SECRET) {
+  throw new Error("JWT_SECRET no configurado");
+}
+
 const auth = (req, res, next) => {
   const header = req.headers.authorization;
 
@@ -7,20 +11,23 @@ const auth = (req, res, next) => {
     return res.status(401).json({ error: "Token requerido" });
   }
 
-  const token = header.split(" ")[1];
+  const [type, token] = header.split(" ");
+
+  if (type !== "Bearer" || !token) {
+    return res.status(401).json({ error: "Formato de token inválido" });
+  }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "secret");
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     req.user = {
       userId: decoded.userId,
       role: decoded.role,
-      username: decoded.username,
     };
 
     next();
   } catch (err) {
-    return res.status(401).json({ error: "Token inválido" });
+    return res.status(401).json({ error: "Token inválido o expirado" });
   }
 };
 
@@ -33,7 +40,4 @@ const allowRoles = (...roles) => {
   };
 };
 
-module.exports = {
-  auth,
-  allowRoles,
-};
+module.exports = { auth, allowRoles };

@@ -1,17 +1,12 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState } from "react";
 import AdminMap from "../componentes/admin/AdminMap";
 import { io } from "socket.io-client";
-import { ResizableBox } from "react-resizable";
 import "react-resizable/css/styles.css";
-import { ThemeProvider, createTheme, CssBaseline } from "@mui/material";
-import { Switch, FormControlLabel } from "@mui/material";
+import { useThemeMode } from "../context/ThemeContext";
 import AdminHeader from "../componentes/admin/AdminHeader";
-
 
 // MUI
 import {
-  AppBar,
-  Toolbar,
   Typography,
   IconButton,
   Box,
@@ -33,19 +28,12 @@ import {
 } from "@mui/material";
 
 // Icons
-import MinimizeIcon from "@mui/icons-material/Minimize";
-import CropSquareIcon from "@mui/icons-material/CropSquare";
 import CloseIcon from "@mui/icons-material/Close";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
-import { MapContainer } from "react-leaflet";
 import { useNavigate } from "react-router-dom";
-
-const DEFAULT_LAYOUT = [65, 35];
-
-//const socket = io("http://localhost:4001");
 
 export default function AdminPanel() {
 
@@ -56,14 +44,13 @@ export default function AdminPanel() {
   const [editingUnit, setEditingUnit] = useState("");
   const [adding, setAdding] = useState(false);
   const [editingLine, setEditingLine] = useState("");
-  const [mode, setMode] = useState("dark");
+  const { mode, toggleMode } = useThemeMode();
   const [buses, setBuses] = useState([]);
   const navigate = useNavigate();
-
+  const [roleFilter] = useState("ALL");
   const stored = localStorage.getItem("user");
   const user = stored ? JSON.parse(stored) : null;
   const token = user?.token || null;
-
   const [demoEnabled, setDemoEnabled] = useState(false);
   const [leftWidth, setLeftWidth] = useState(60); // %
   const isDraggingRef = React.useRef(false);
@@ -74,8 +61,6 @@ export default function AdminPanel() {
     role: "PASAJERO",
   });
 
-  const [layout, setLayout] = useState(null);
-  
 
   // ================== SOCKET ====================//
   const socket = io("http://localhost:4001", {
@@ -101,7 +86,7 @@ useEffect(() => {
     const rect = container.getBoundingClientRect();
     let percent = ((e.clientX - rect.left) / rect.width) * 100;
 
-    // límites sanos
+    // límites 
     percent = Math.max(30, Math.min(80, percent));
 
     setLeftWidth(percent);
@@ -126,7 +111,7 @@ useEffect(() => {
   });
 
   return () => socket.off("demo:status");
-}, []);
+});
 
   // ================= FETCH =================
   useEffect(() => {
@@ -168,15 +153,25 @@ useEffect(() => {
   return () => {
     socket.off("busUpdate");
   };
-}, []);
+});
 
+ console.log(users[0]);
 
   /* ================= FILTRO ================= */
-  const filteredUsers = users.filter(u =>
-  (u.username || "").toLowerCase().includes(search.toLowerCase()) ||
-  (u.role || "").toLowerCase().includes(search.toLowerCase())
-);
+const filteredUsers = users.filter(u => {
+  const text = search.toLowerCase();
 
+  const matchesSearch =
+    (u.username || "").toLowerCase().includes(text) ||
+    (u.role || "").toLowerCase().includes(text) ||
+    (u.assignedUnit || "").toString().toLowerCase().includes(text) ||
+    (u.assignedLine || "").toLowerCase().includes(text);
+
+  const matchesRole =
+    roleFilter === "ALL" || u.role === roleFilter;
+
+  return matchesSearch && matchesRole;
+});
 
   /* ================= EDITAR ================= */
   const startEdit = (u) => {
@@ -191,22 +186,6 @@ useEffect(() => {
     setEditingId(null);
     setEditingRole("");
   };
-
-  // ================ Themes ==================== //
-  const theme = useMemo(
-  () =>
-    createTheme({
-      palette: {
-        mode,
-        background: {
-          default: mode === "dark" ? "#020617" : "#eaf5f4ff",
-          paper: mode === "dark" ? "#02092dff" : "#ffffffff"
-        }
-      }
-    }),
-  [mode]
-);
-
 
   const saveUnit = async (id) => {
     await fetch(`http://localhost:4001/api/admin/users/${id}/unit`,
@@ -310,27 +289,28 @@ useEffect(() => {
     return <h3>No autorizado</h3>;
   }
 
+const handleLogout = () => {
+  localStorage.removeItem("token"); 
+  navigate("/login");
+};
   
   //                                                              //
   // =========================== RETURN ========================= //
   //                                                              //
 return (
-    <ThemeProvider theme={theme}>
-    <CssBaseline />
+  
   <Box sx={{ height: "100vh", display: "flex", flexDirection: "column" }}>
   
   <AdminHeader
+  user={user}
+  onLogout={handleLogout}
   mode={mode}
-  onToggleMode={() =>
-    setMode(prev => (prev === "dark" ? "light" : "dark"))
-  }
+  onToggleMode={toggleMode}
   demoEnabled={demoEnabled}
   onToggleDemo={toggleDemo}
-  onGoMap={() => {
-    navigate("/mapa", { state: { fromAdmin: true } });
-  }}
+  onGoMap={() => navigate("/mapa")}
+  showDemo={true}
 />
-
 
 <Box
   sx={{
@@ -348,11 +328,7 @@ return (
       bgcolor: "background.paper"
     }}
   >
-
-
-
-
-      {/* ================= PANEL ADMIN (EL TUYO, ENTERO) ================= */}
+{/* ================= PANEL ADMIN ================= */}
      
        <Paper
           elevation={1}
@@ -381,6 +357,7 @@ return (
     borderColor: "divider"
   }}
 >
+
   {/* DEMO */}
   <Tooltip title={demoEnabled ? "Detener DEMO" : "Iniciar DEMO"}>
     <IconButton
@@ -427,50 +404,45 @@ return (
   </Tooltip>
 </Box>
 
-
-            <Stack
-              direction="row"
-              spacing={2}
-              alignItems="center"
-              sx={{ mb: 2 }}
-            >
-              <TextField
-                size="small"
-                label="Buscar usuario"
-                variant="outlined"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                sx={{
-                  width: 260,
-                  input: { color: "#e5e7eb" },
-                  label: { color: "#94a3b8" }
-                }}
-              />
-
-            
-
-<Button
-  variant="contained"
-  startIcon={<AddIcon />}
-  onClick={() => setAdding(true)}
-  sx={{
-    textTransform: "none",
-    fontWeight: 600,
-    borderRadius: 2,
-    px: 2.5,
-    boxShadow: "0 6px 16px rgba(3,169,155,0.25)",
-    "&:hover": {
-      boxShadow: "0 8px 22px rgba(3,169,155,0.35)",
-      transform: "translateY(-1px)"
-    }
-  }}
+{/* =================  BUSCADOR  ================= */}
+<Stack
+  direction="row"
+  spacing={2}
+  alignItems="center"
+  sx={{ mb: 2 }}
 >
-  Agregar usuario
-</Button>
+  <TextField
+    size="small"
+    label="Buscar por nombre, rol, línea o unidad"
+    variant="outlined"
+    value={search}
+    onChange={e => setSearch(e.target.value)}
+    sx={{
+      width: 320,
+      input: { color: "#e5e7eb" },
+      label: { color: "#94a3b8" }
+    }}
+  />
 
-
-            </Stack>
-
+  <Button
+    variant="contained"
+    startIcon={<AddIcon />}
+    onClick={() => addUser(true)}
+    sx={{
+      textTransform: "none",
+      fontWeight: 600,
+      borderRadius: 2,
+      px: 2.5,
+      boxShadow: "0 6px 16px rgba(3,169,155,0.25)",
+      "&:hover": {
+        boxShadow: "0 8px 22px rgba(3,169,155,0.35)",
+        transform: "translateY(-1px)"
+      }
+    }}
+  >
+    Agregar usuario
+  </Button>
+</Stack>
   
 <Typography variant="caption">
   users: {users.length} | filteredUsers: {filteredUsers.length}
@@ -489,7 +461,7 @@ return (
  <Table
   size="small"
   sx={{
-    minWidth: 0,        // 🔥 rompe el bloqueo
+    minWidth: 0,     
     width: "100%",
     tableLayout: "fixed",
     "& td, & th": {
@@ -509,8 +481,6 @@ return (
     }
   }}
 >
-
-
         <TableCell><b>Usuario</b></TableCell>
         <TableCell><b>Rol</b></TableCell>
         <TableCell><b>Unidad</b></TableCell>
@@ -521,7 +491,7 @@ return (
 
     <TableBody>
 
-      {/* === FILA AGREGAR USUARIO === */}
+      {/* ===  AGREGAR USUARIO === */}
       {adding && (
         <TableRow>
           <TableCell>
@@ -643,15 +613,8 @@ return (
   onChange={e => setEditingUnit(e.target.value)}
   sx={{ width: 80 }}
 />
-
-                ) : (
-                  u.assignedUnit || "-"
-                )
-              ) : (
-                "-"
-              )}
-            </TableCell>
-
+     ) : ( u.assignedUnit || "-" )) : ("-" )}
+         </TableCell>
             <TableCell>
               {u.role === "CHOFER" ? (
                 editing ? (
@@ -667,12 +630,7 @@ return (
                    <MenuItem value="ZONA OESTE">ZONA OESTE</MenuItem>
                    </Select>
                    </FormControl>
-                ) : (
-                  u.assignedLine || "-"
-                )
-              ) : (
-                "-"
-              )}
+                ) : ( u.assignedLine || "-")) : ("-" )}
             </TableCell>
 
             <TableCell align="center">
@@ -727,13 +685,9 @@ return (
     </TableBody>
   </Table>
 </TableContainer>
-
             </div>
-
         </Paper>
   </Box>      
-        
-
 <Box
     
   onMouseDown={() => (isDraggingRef.current = true)}
@@ -762,12 +716,6 @@ return (
   }}
 >
 
-          {/* Header del panel mapa 
-   <Box sx={{ flexShrink: 0 }}>
-     Mapa en tiempo real
-   </Box>*/}
-
-
           {/* Contenedor del mapa */}
    <Box sx={{ flex: 1 }}>
     <AdminMap buses={buses} />
@@ -776,8 +724,6 @@ return (
         </Paper>
    </Box>
    </Box>
-  </ThemeProvider>
-
 );
 }
 
