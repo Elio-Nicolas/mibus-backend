@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
     padding: 18,
     borderRadius: 20,
     marginBottom: 16,
-    backdropFilter: "blur(10px)",
+    //backdropFilter: "blur(10px)",
   },
   row: {
     flexDirection: "row",

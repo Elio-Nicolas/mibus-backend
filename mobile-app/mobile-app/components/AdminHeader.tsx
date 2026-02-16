@@ -16,15 +16,25 @@ type Props = {
   weatherCode: number;
 };
 
-const scaleAnim = useRef(new Animated.Value(1)).current;
-
 export default function AdminHeader({ city, weatherCode }: Props) {
   const [time, setTime] = useState(new Date());
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const router = useRouter();
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const rotateAnim = useRef(new Animated.Value(0)).current;
+  const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+const handlePressIn = () => {
+  pressTimer.current = setTimeout(() => {
+    router.push("/login");
+  }, 5000);
+};
+
+const handlePressOut = () => {
+  if (pressTimer.current) {
+    clearTimeout(pressTimer.current);
+  }
+};
 useEffect(() => {
   Animated.loop(
     Animated.parallel([
@@ -98,8 +108,10 @@ const rotate = rotateAnim.interpolate({
   return (
     <View style={[styles.container, { backgroundColor: theme.bg, borderBottomColor: theme.border }]}>
       <View>
+        <TouchableOpacity onPressIn={handlePressIn} onPressOut={handlePressOut}>
         <Text style={styles.brand}>MiBus</Text>
         <Text style={styles.subtitle}>Transporte Inteligente</Text>
+        </TouchableOpacity>
         <Text style={styles.city}>Villa Mercedes</Text>
       </View>
 
@@ -124,7 +136,7 @@ const rotate = rotateAnim.interpolate({
     />
   </Animated.View>
 </TouchableOpacity>
-)}
+)} 
       </View>
     </View>
   );

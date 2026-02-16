@@ -37,6 +37,8 @@ router.post("/signup", async (req, res) => {
 });
 
 router.post("/signin", async (req, res) => {
+  console.log("POST /signin recibido", req.body);
+
   const { username, password } = req.body;
 
   if (!username || !password) {
@@ -45,6 +47,8 @@ router.post("/signin", async (req, res) => {
 
   try {
     const user = await User.findOne({ username });
+    console.log("USER ENCONTRADO:", user);
+
     if (!user) {
       return res.status(401).json({ error: "Credenciales inválidas" });
     }
@@ -63,15 +67,18 @@ router.post("/signin", async (req, res) => {
       { expiresIn: "1h" }
     );
 
-    res.json({
+    return res.json({
       token,
       userId: user._id,
       username: user.username,
       role: user.role,
     });
+
   } catch (err) {
-    res.status(500).json({ error: "Error en login" });
+    console.log("ERROR EN SIGNIN:", err);
+    return res.status(500).json({ error: "Error en login" });
   }
 });
+
 
 module.exports = router;

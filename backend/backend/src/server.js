@@ -12,7 +12,16 @@ process.env.JWT_SECRET = "mibus_secret_local";
 
 /* ======================= MIDDLEWARE ======================= */
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.options("*", cors());
 app.use(cors());
+
+
+
+app.use((req, res, next) => {
+  console.log("METODO:", req.method, "RUTA:", req.url);
+  next();
+});
+
 app.use(express.json());
 
 /* ======================= SERVER + SOCKET.IO ======================= */
@@ -46,6 +55,7 @@ app.use("/api/chofer", choferRoutes);
 const authRoutes = require("./routes/Auth");
 app.use("/api/auth", authRoutes);
 
+console.log("🔥 ESTE ES EL BACKEND QUE ESTOY MIRANDO 🔥");
 
 const TripEvent = require("./models/TripEvent");
 /* ======================= MONGO ======================= */
@@ -53,10 +63,24 @@ mongoose.connect(
   "mongodb+srv://baigorriaen83_db_user:5RnvPqIcXJq6h197@clustermibus.fc3bgtx.mongodb.net/mibus?appName=ClusterMibus"
 );
 
+mongoose.connection.on("open", () => {
+  console.log("✅ Mongo conectado correctamente");
+});
+
+mongoose.connection.on("error", (err) => {
+  console.log("❌ Error Mongo:", err);
+});
+const User = require("./models/User");
 mongoose.connection.once("open", async () => {
 
+  const listaUsuarios = await User.find();
+console.log("USUARIOS EN DB:");
+listaUsuarios.forEach(u => console.log(u.username));
+
+
+
   // ======================= CREAR ADMINISTARTIVO INICIAL =======================
-  const User = require("./models/User");
+  
   const bcrypt = require("bcrypt");
 
   (async () => {

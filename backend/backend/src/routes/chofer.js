@@ -7,11 +7,7 @@ const WorkSession = require("../models/WorkSession");
 /* =========================
    DATOS DEL CHOFER LOGUEADO
 ========================= */
-router.get(
-  "/me",
-  auth,
-  allowRoles("CHOFER"),
-  async (req, res) => {
+router.get("/me", auth, allowRoles("CHOFER"), async (req, res) => {
     try {
       const user = await User.findById(req.user.userId)
         .select("username role assignedUnit assignedLine");
