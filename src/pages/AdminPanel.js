@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 import AdminMap from "../componentes/admin/AdminMap";
-import { io } from "socket.io-client";
 import "react-resizable/css/styles.css";
 import { useThemeMode } from "../context/ThemeContext";
 import AdminHeader from "../componentes/admin/AdminHeader";
+import { socket } from "../socket";
 
 // MUI
 import {
@@ -34,9 +34,10 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
 import { useNavigate } from "react-router-dom";
+import DashboardIcon from "@mui/icons-material/Dashboard";
 
 export default function AdminPanel() {
-
+  
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState("");
   const [editingId, setEditingId] = useState(null);
@@ -54,26 +55,26 @@ export default function AdminPanel() {
   const [demoEnabled, setDemoEnabled] = useState(false);
   const [leftWidth, setLeftWidth] = useState(60); // %
   const isDraggingRef = React.useRef(false);
-
+  const [busTrails, setBusTrails] = useState({});
   const [newUser, setNewUser] = useState({
     username: "",
     password: "",
     role: "PASAJERO",
   });
 
+ /* useEffect(() => {
+  socket.connect();
 
-  // ================== SOCKET ====================//
-  const socket = io("http://localhost:4001", {
-  transports: ["websocket"],
-});
-
+  return () => {
+    socket.disconnect();
+  };
+}, []);*/
 
   // ================== HANDLE ===============
-  const toggleDemo = () => {
-  const next = !demoEnabled;
-  setDemoEnabled(next);
-
-  socket.emit(next ? "demo:start" : "demo:stop");
+  // REEMPLAZAR toggleDemo
+const toggleDemo = () => {
+  // ❌ no tocar demoEnabled aquí
+  socket.emit(demoEnabled ? "demo:stop" : "demo:start");
 };
 
 useEffect(() => {
@@ -106,12 +107,20 @@ useEffect(() => {
 }, []);
 // ===================== DEMO
 useEffect(() => {
-  socket.on("demo:status", ({ enabled }) => {
+  const handler = ({ enabled }) => {
     setDemoEnabled(enabled);
-  });
 
-  return () => socket.off("demo:status");
-});
+    // 👇 SI LA DEMO SE DETIENE → LIMPIAR ESTADO REAL
+    if (!enabled) {
+      setBuses([]);
+      setBusTrails({});
+    }
+  };
+
+  socket.on("demo:status", handler);
+
+  return () => socket.off("demo:status", handler);
+}, []);
 
   // ================= FETCH =================
   useEffect(() => {
@@ -135,27 +144,36 @@ useEffect(() => {
       });
   }, [token]);
 
-  // ================== eSCucha =====================
-  useEffect(() => {
-  socket.on("busUpdate", (list) => {
-    setBuses(
-      list.map((u) => ({
-        unitId: u.unitId,
-        driverName: u.driverName,
-        lat: u.lat,
-        lon: u.lon,
-        color: u.color || "red",
-        lastUpdate: u.lastUpdate,
-      }))
-    );
-  });
+ // ================== ESCUCHA =====================
+useEffect(() => {
+  if (!socket.connected) {
+    socket.connect();
+  }
+
+  const handler = (bus) => {
+    console.log("🔥 BUS COMPLETO RECIBIDO:", JSON.stringify(bus, null, 2));
+
+    setBuses(prev => {
+      const existing = prev.find(b => b.unitId === bus.unitId);
+
+      if (existing) {
+        return prev.map(b =>
+          b.unitId === bus.unitId
+            ? { ...b, ...bus }   // 🔥 no perder datos
+            : b
+        );
+      }
+
+      return [...prev, bus];
+    });
+  };
+
+  socket.on("busUpdate", handler);
 
   return () => {
-    socket.off("busUpdate");
+    socket.off("busUpdate", handler);
   };
-});
-
- console.log(users[0]);
+}, []);
 
   /* ================= FILTRO ================= */
 const filteredUsers = users.filter(u => {
@@ -402,6 +420,23 @@ return (
       🗺️
     </IconButton>
   </Tooltip>
+
+  {/* DASHBOARD */}
+<Tooltip title="Ver Dashboard">
+  <IconButton
+    size="small"
+    onClick={() => navigate("/admin/dashboard")}
+    sx={{
+      borderRadius: 1,
+      color: "text.secondary",
+      "&:hover": {
+        bgcolor: "action.hover"
+      }
+    }}
+  >
+    <DashboardIcon />
+  </IconButton>
+</Tooltip>
 </Box>
 
 {/* =================  BUSCADOR  ================= */}
@@ -427,7 +462,8 @@ return (
   <Button
     variant="contained"
     startIcon={<AddIcon />}
-    onClick={() => addUser(true)}
+    onClick={() => setAdding(true)}
+
     sx={{
       textTransform: "none",
       fontWeight: 600,
@@ -558,6 +594,7 @@ return (
           <TableCell align="center">
             <Tooltip title="Guardar">
               <IconButton color="success"
+                 onClick={addUser}
                  sx={{
                       bgcolor: "rgba(34,197,94,0.15)",
                      "&:hover": { bgcolor: "rgba(34,197,94,0.25)" }
@@ -718,7 +755,7 @@ return (
 
           {/* Contenedor del mapa */}
    <Box sx={{ flex: 1 }}>
-    <AdminMap buses={buses} />
+    <AdminMap buses={buses} busTrails={busTrails} />
    </Box>
 
         </Paper>

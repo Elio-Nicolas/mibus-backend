@@ -8,12 +8,13 @@ import PasajeroPage from "../componentes/mapas/MapContainerComponent";
 import NoAutorizado from "../pages/NoAutorizado";
 import ChoferPanel from "../pages/choferPanel";
 import AdminHeader from "../componentes/admin/AdminHeader";
+import Dashboard from "../pages/Dashboard";
 
 /* ================= PROTECTED ROUTE ================= */
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const stored = localStorage.getItem("user");
   const user = stored ? JSON.parse(stored) : null;
-
+  
   if (!user || !user.token) {
     return <Navigate to="/login" replace />;
   }
@@ -35,16 +36,26 @@ const AppRouter = () => {
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<SignUp />} />
       <Route path="/no-autorizado" element={<NoAutorizado />} />
+   
 
       {/* POR ROL */}
       <Route
-        path="/admin"
-        element={
-          <ProtectedRoute allowedRoles={["ADMIN"]}>
-            <AdminPanel />
-          </ProtectedRoute>
-        }
-      />
+  path="/admin"
+  element={
+    <ProtectedRoute allowedRoles={["ADMIN"]}>
+      <AdminPanel />
+    </ProtectedRoute>
+  }
+/>
+
+<Route
+  path="/admin/dashboard"
+  element={
+    <ProtectedRoute allowedRoles={["ADMIN"]}>
+      <Dashboard />
+    </ProtectedRoute>
+  }
+/>
 
       <Route
         path="/inspector"

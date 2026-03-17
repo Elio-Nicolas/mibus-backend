@@ -1,8 +1,8 @@
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, useMap, Polyline } from "react-leaflet";
 import { useEffect } from "react";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-
+import BusPopup  from "../mapas/BusPopup";
 
 /* componente SOLO sirve para avisarle a Leaflet */
 function ResizeFix() {
@@ -24,31 +24,33 @@ const createBusIcon = (color = "#00bfff") =>
   L.divIcon({
     className: "",
     html: `<div class="bus-dot" style="--bus-color:${color}"></div>`,
-    iconSize: [16, 16],
-    iconAnchor: [8, 8],
+    iconSize: [18, 18],
+    iconAnchor: [9, 9],
   });
 
   const markerStyle = `
 .bus-dot {
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background: var(--bus-color);
-  box-shadow:
-    0 0 6px var(--bus-color),
-    0 0 12px var(--bus-color),
-    0 0 18px var(--bus-color);
-  animation: pulse 1.5s infinite;
+  border: 3px solid white;
+  box-shadow: 0 0 12px rgba(0,0,0,0.25);
+  position: relative;
 }
 
-@keyframes pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.5); }
-  100% { transform: scale(1); }
+.bus-dot::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  background: var(--bus-color);
+  opacity: 0.25;
 }
 `;
+export default function AdminMap({ buses = [], busTrails = {} }) {
+  console.log("ADMIN MAP RECIBE:", buses);
 
-export default function AdminMap({ buses = [] }) {
   return (
     <MapContainer
       center={[-33.675, -65.457]}
@@ -65,20 +67,26 @@ export default function AdminMap({ buses = [] }) {
       />
 
       {buses.map((bus) => (
-     <Marker
-  key={bus.unitId}
-  position={[bus.lat, bus.lon]}
-  icon={createBusIcon(bus.color || "#ff2b2b")}
->
+  <>
+    <Marker
+      position={[bus.lat, bus.lon]}
+      icon={createBusIcon(bus.color || "#00bfff")}
+    >
+      <BusPopup bus={bus} />
+    </Marker>
 
-
-          <Popup>
-            <b>Unidad:</b> {bus.unitId}<br />
-            <b>Chofer:</b> {bus.driverName}
-          </Popup>
-        </Marker>
-      ))}
-
+    {busTrails?.[bus.unitId] && (
+      <Polyline
+        positions={busTrails[bus.unitId]}
+        pathOptions={{
+          color: bus.color || "#00bfff",
+          weight: 3,
+          opacity: 0.7,
+        }}
+      />
+    )}
+  </>
+))}
     </MapContainer>
   );
 }

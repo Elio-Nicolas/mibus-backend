@@ -3,56 +3,22 @@ import {
   MapContainer,
   TileLayer,
   Marker,
-  Popup,
   Polyline,
   useMap,
-  GeoJSON,
 } from "react-leaflet";
-import AdminHeader from "../admin/AdminHeader";
+import paradasGeoJSON from "../../public/lineas.json";
+import ParadasLayer from "./ParadasLayer";
+import BusPopup from "./BusPopup";
 import { useLocation, useNavigate } from "react-router-dom";
-//import BusTrailLayer from "./BusTrailLayer";
 import L from "leaflet";
-//import io from "socket.io-client";
-//import { Fragment } from "react";
 import { IconButton } from "@mui/material";
-//import MenuIcon from "@mui/icons-material/Menu";
-
-//import Sidebar from "./Sidebar";
 import LineasDrawer from "./LineasDrawer";
 import ClimaDrawer from "./ClimaDrawer";
 import ClimaWidget from "../clima/ClimaWidget";
-
-//import { mockVehicles } from "../../mock/vehicles";
-//import { moveVehicle } from "../../mock/moveVehicle";
-//import { routesByLine } from "../../mock/routes";
-
+import React from "react";
 import "./Drawers.css";
 import { socket } from "../../socket"; 
 // ajustá la ruta si hace falta
-
-// ===================== CONFIG SOCKET =====================
-/*/const socket = io("https://mibus-backend.onrender.com"); // backend en Render
-const socket = io("https://mibus-backend.onrender.com", {
-  transports: ["websocket"],
-});*/
-
-//const socket = io("http://localhost:4001", { transports: ["websocket"],});
-
-const getBusStatus = (lastUpdate) => {
-  if (!lastUpdate) return { label: "SIN DATOS", color: "#999" };
-
-  const now = Date.now();
-  const last = new Date(lastUpdate).getTime();
-  const diffSeconds = (now - last) / 1000;
-
-  if (diffSeconds < 30) {
-    return { label: "EN SERVICIO", color: "green" };
-  }
-  if (diffSeconds < 120) {
-    return { label: "DETENIDA", color: "orange" };
-  }
-  return { label: "SIN SEÑAL", color: "red" };
-};
 
 const ROLE_UI = {
   GUEST: {
@@ -97,8 +63,6 @@ const ROLE_UI = {
   },
 };
 
-//const MAX_POINTS = 6;
-
 const DEFAULT_POSITION = [-33.6756, -65.4578];
 const LINE_COLORS = {
   A: "#007bff",
@@ -115,6 +79,20 @@ const SetViewToLocation = ({ position }) => {
   return null;
 };
 
+const getBusIcon = (color = "#007bff") => {
+  return L.divIcon({
+    html: `<div style="
+      background-color: ${color};
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 2px solid white;
+    "></div>`,
+    className: "",
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
+  });
+};
 
 /*const getRoleFromToken = () => {
   const token =
@@ -130,28 +108,6 @@ const SetViewToLocation = ({ position }) => {
     return null;
   }
 };*/
-
-
-// ================= ICONO UNIDAD / COLECTIVO =================
-const createBusIcon = (color = "#007bff") => {
-  return L.divIcon({
-    className: "bus-icon",
-    html: `
-      <div style="
-        width: 16px;
-        height: 16px;
-        background: ${color};
-        border-radius: 50%;
-        border: 2px solid white;
-        box-shadow: 0 0 4px rgba(0,0,0,0.5);
-      "></div>
-    `,
-    iconSize: [16, 16],
-    iconAnchor: [8, 8],
-  });
-};
-
-
 
  // ================= HANDLES ====================== //
   /*const handleChangeUsername = () => {
@@ -195,33 +151,17 @@ const handleLogout = () => {
 /* === END NEW === */
 
 const MapContainerComponent = () => {
+
   const [isSharing, setIsSharing] = useState(false);
-  const [userPosition, setUserPosition] = useState(null);
+  const [userPosition] = useState(null);
   const watchIdRef = useRef(null);
   const [buses, setBuses] = useState([]); // aquí almacenamos los usuarios mostrados en el mapa
-  
-  //const [openDrawer, setOpenDrawer] = useState(false);
   const [openLineasDrawer, setOpenLineasDrawer] = useState(false);
   const [mostrarClima, setMostrarClima] = useState(false);
   const [selectedLinea, setSelectedLinea] = useState(null);
-  const [paradasData, setParadasData] = useState(null);
-  const lastPositionRef = useRef(null);
+  const [paradasData] = useState(paradasGeoJSON);
   const [busTrails, setBusTrails] = useState({});
-  const location = useLocation();
-  //const fromAdmin = location.state?.fromAdmin === true;
   const navigate = useNavigate();
-  
-
-
-  //* =============== MOCK ============== /
-  /*
-  const [vehicles, setVehicles] = useState(
-  mockVehicles.map(v => ({
-    ...v,
-    position: routesByLine[v.line][0],
-  }))
-);*/
-
   
   // === ESTADO GPS (PRECISIÓN Y FUENTE) ===
   const [ setGpsInfo] = useState({accuracy: null,source: "desconocida",});
@@ -424,100 +364,86 @@ const startSharing = () => {
      - Escuchamos 'busUpdate' (lista completa o parcial) enviado por el backend
      - Escuchamos 'userStopped' para remover usuarios que dejan de compartir (si así lo querés)
   */
-  useEffect(() => {
-   socket.on("busUpdate", (list) => {
-  console.log("🚌 busUpdate recibido:", list);
 
-  setBuses(
-    list.map((u) => ({
-      unitId: u.unitId,
-      driverName: u.driverName,
-      linea: u.linea,
-      lat: u.lat,
-      lon: u.lon,
-      color: u.color || "#007bff",
-      lastUpdate: u.lastUpdate,
-    }))
-  );
+useEffect(() => {
 
-  setBusTrails((prev) => {
-    const next = { ...prev };
+  const handleBusUpdate = (payload) => {
+    console.log("🔥 EVENTO busUpdate RECIBIDO", payload);
 
-    list.forEach((u) => {
-      if (typeof u.lat !== "number" || typeof u.lon !== "number") return;
+    const list = Array.isArray(payload) ? payload : [payload];
 
-      if (!next[u.unitId]) {
-        next[u.unitId] = [];
-      }
+    setBuses((prev) => {
+      const updated = [...prev];
 
-      next[u.unitId] = [
-        ...next[u.unitId],
-        [u.lat, u.lon],
-      ].slice(-5); // máximo 5 puntos
+      list.forEach((u) => {
+        console.log("BUS REAL:", u);
+
+        const index = updated.findIndex(b => b.unitId === u.unitId);
+
+        const newBus = {
+          unitId: u.unitId,
+          driverName: u.driverName,
+          linea: u.linea || u.line,
+          lat: u.lat,
+          lon: u.lon,
+          color: u.color || "#007bff",
+          lastUpdate: u.lastUpdate,
+          nextStopName: u.nextStopName,
+          etaSeconds: u.etaSeconds,
+          atStop: u.atStop
+        };
+
+        if (index !== -1) {
+          updated[index] = { ...updated[index], ...newBus };
+        } else {
+          updated.push(newBus);
+        }
+      });
+
+      return updated;
     });
 
-    return next;
-  });
-});
+    setBusTrails((prev) => {
+      const next = { ...prev };
 
+      list.forEach((u) => {
+        if (typeof u.lat !== "number" || typeof u.lon !== "number") return;
+        if (!next[u.unitId]) next[u.unitId] = [];
+        next[u.unitId] = [...next[u.unitId], [u.lat, u.lon]].slice(-8);
+      });
 
-    socket.on("userStopped", (userId) => {
-      // opcional: eliminar del array para que desaparezca del mapa
-      setBuses((prev) => prev.filter((b) => b.userId !== userId));
+      return next;
     });
+  };
 
-    return () => {
-      socket.off("busUpdate");
-      socket.off("userStopped");
-    };
-  }, []);
+  const handleUserStopped = (userId) => {
+    setBuses([]);
+    setBusTrails({});
+  };
 
- /* useEffect(() => {
-    fetchBuses();
-    const interval = setInterval(fetchBuses, 3000);
-    return () => clearInterval(interval);
-  }, []);*/
+  socket.on("busUpdate", handleBusUpdate);
+  socket.on("userStopped", handleUserStopped);
 
-  // ================= MOCK ======================= //
- /* useEffect(() => {
-  const interval = setInterval(() => {
-    setVehicles(prev =>
-      prev.map(v => moveVehicle(v))
-    );
-  }, 2000); // cada 2 segundos
+  return () => {
+    socket.off("busUpdate", handleBusUpdate);
+    socket.off("userStopped", handleUserStopped);
+  };
 
-  return () => clearInterval(interval);
-}, []);*/
+}, []);
 
+function FixMapResize() {
+  const map = useMap();
 
   useEffect(() => {
-    fetch("/lineas.geojson")
-      .then((res) => res.json())
-      .then((data) => setParadasData(data))
-      .catch((err) => console.error("Error cargando GeoJSON:", err));
-  }, []);
+    setTimeout(() => {
+      map.invalidateSize();
+    }, 200);
+  }, [map]);
 
-/*
- useEffect(() => {
-  if (!storedUserId) return;
-
-  socket.emit("register", {
-    userId: storedUserId,
-    username,
-    role,
-    assignedUnit: role === "CHOFER" ? selectedUnit : null,
-    assignedLine: role === "CHOFER" ? assignedLine : null,
-  });
-
-}, [storedUserId, role, selectedUnit, username, assignedLine]);*/
-
-
-  // ===== PARA NAVEGAR DESDE MAPA A PANEL ADMIN =====
-  //const navigate = useNavigate();
+  return null;
+}
 
   // ======================== RENDER ========================
- 
-  
 
   return (
     
@@ -534,56 +460,14 @@ const startSharing = () => {
        
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap contributors" />
 
-        {/* 👉 4.4 RUTAS (Polyline) 
-    {Object.entries(routesByLine).map(([line, route]) => (
-      <Polyline
-        key={line}
-        positions={route}
-        pathOptions={{ weight: 4 }}
-      />
-    ))}*/}
-
-    {/* 👉 4.5 COLECTIVOS (Marker) 
-    {vehicles.map(bus => (
-      <Marker
-        key={bus.id}
-        position={bus.position}
-      >
-        {/* Acá podés meter tu Popup actual 
-      </Marker>
-    ))} */}
-
-        {selectedLinea === "A" && paradasData && (
-          <GeoJSON
-            data={paradasData}
-            pointToLayer={(feature, latlng) =>
-              L.marker(latlng, {
-                icon: new L.Icon({
-                  iconUrl: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24'><circle cx='12' cy='12' r='2' fill='%23007bff'/></svg>",
-                  iconSize: [25, 25],
-                  iconAnchor: [12, 24],
-                  popupAnchor: [0, -20],
-                }),
-              })
-            }
-            onEachFeature={(feature, layer) => {
-              const name = feature.properties?.name || "Parada de colectivo";
-              layer.bindPopup(`🚌 ${name}`);
-            }}
-          />
+        {selectedLinea && paradasData && (
+            <ParadasLayer paradasData={paradasData} selectedLinea={selectedLinea} />
         )}
-         
-        {/* Tu marcador (local) 
-        {userPosition && (
-          <Marker position={userPosition} icon={userIcon}> ## SE ELIMINA 
-            <Popup>Estás acá</Popup>
-          </Marker>
-        )}*/}
 
         <SetViewToLocation position={userPosition} />
 
-        {/* Marcadores de UNIDADES */}
          {/* MARCADORES DE UNIDADES + ESTELA DE PUNTOS */}
+         
 {buses
   .filter((bus) => {
     if (typeof bus.lat !== "number" || typeof bus.lon !== "number") return false;
@@ -591,15 +475,22 @@ const startSharing = () => {
     return true;
   })
   .map((bus) => {
-    const status = getBusStatus(bus.lastUpdate);
-    const lineColor = LINE_COLORS[bus.line] || "#9110b8ff";
+
+    const line = bus.linea || bus.line;
+    const lineColor = LINE_COLORS[line] || "#9110b8ff";
     const trail = busTrails[bus.unitId];
 
+    const lat = Number(bus.lat);
+    const lon = Number(bus.lon);
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+
     return (
-      <>
+      <React.Fragment key={bus.unitId}>
+
+        {/* ESTELA */}
         {Array.isArray(trail) && trail.length > 1 && (
           <Polyline
-            key={`trail-${bus.unitId}`}
             positions={trail}
             pathOptions={{
               color: lineColor,
@@ -609,29 +500,15 @@ const startSharing = () => {
           />
         )}
 
-        <Marker
-          key={`marker-${bus.unitId}`}
-          position={[bus.lat, bus.lon]}
-          icon={createBusIcon(lineColor)}
-        >
-          <Popup>
-            <div style={{ minWidth: "180px" }}>
-              <strong>🚌 Línea:</strong> {bus.line || "No asignada"} <br />
-              <strong>🚍 Unidad:</strong> {bus.unitId} <br />
-              <strong>👤 Chofer:</strong>{" "}
-              {bus.driverName || "No asignado"} <br />
-              <strong>📊 Estado:</strong>{" "}
-              <span style={{ color: status.color, fontWeight: "bold" }}>
-                {status.label}
-              </span>
-            </div>
-          </Popup>
-        </Marker>
-      </>
+        {/* MARCADOR */}
+       <Marker position={[lat, lon]} icon={getBusIcon(bus.color || lineColor)}>
+        <BusPopup bus={bus} />
+       </Marker>
+
+      </React.Fragment>
     );
   })}
-
-
+  <FixMapResize />
       </MapContainer>
        <div
   style={{

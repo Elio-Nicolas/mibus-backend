@@ -63,13 +63,13 @@ router.post("/session/start", auth, async (req, res) => {
   try {
     const userId = req.user.userId;
 
-    // 🔒 Cerramos sesión activa previa
+    // Cerramos sesión activa previa
     await WorkSession.updateMany(
       { userId, status: "ACTIVE" },
       { status: "CLOSED", endTime: new Date() }
     );
 
-    // ✅ Nueva sesión
+    // Nueva sesión
     const session = new WorkSession({
       userId,
       role: req.user.role,
@@ -81,7 +81,7 @@ router.post("/session/start", auth, async (req, res) => {
 
     await session.save();
 
-    console.log("SESSION CREADA 👉", session);
+    console.log("SESSION CREADA ", session);
 
     res.json(session);
   } catch (err) {
