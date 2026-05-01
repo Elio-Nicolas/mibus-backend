@@ -27,6 +27,7 @@ const activeBuses = {};
 // Control del modo demo
 let demoRunning = false;
 let demoInstance = null;
+let demoOwner = null;
 
 // Tiempo máximo sin update antes de desactivar unidad
 const UNIT_TIMEOUT_MS = 30_000;
@@ -43,7 +44,7 @@ module.exports = function initSockets(io) {
   io.on("connection", (socket) => {
 
     console.log("🟢 Cliente conectado", socket.id);
-    console.log("🚀 SOCKET CREADO");
+    console.log("🚀 SOCKET CREADO 'INDEX'");
     /**
      * ===============================
      * REGISTRO DE USUARIO
@@ -165,32 +166,70 @@ socket.on("register", async ({ userId, username, role, assignedUnit, assignedLin
      */
 
     socket.emit("demo:status", { enabled: demoRunning });
+    
+    socket.on("demo:start", async () => {
+      
+       if (socket.role !== "ADMIN") return;
+       
 
-    socket.on("demo:start", () => {
-      if (demoRunning) return;
+          if (demoRunning && demoInstance) {
+            console.log("⚠️ Había una demo corriendo → la mato");
 
-      demoRunning = true;
-      demoInstance = startDemo(io);
+             demoInstance.stop();
+             demoInstance = null;
+             demoRunning = false;
+           }
 
-      io.emit("demo:status", { enabled: true });
-    });
+          if (demoRunning) return;
+
+             demoRunning = true;
+             demoOwner = socket.id;
+
+             demoInstance = await startDemo(io);
+
+         io.emit("demo:status", { enabled: true });
+     });
 
     socket.on("demo:stop", () => {
-      if (!demoRunning) return;
+  if (socket.role !== "ADMIN") return;
 
-      demoRunning = false;
-      demoInstance?.stop?.();
+  if (!demoRunning) return;
 
-      io.emit("demo:status", { enabled: false });
-    });
+  console.log("🛑 DETENIENDO DEMO...");
+
+  demoRunning = false;
+
+  if (demoInstance) {
+    demoInstance.stop();
+    console.log("✅ demoInstance.stop() ejecutado");
+  } else {
+    console.log("❌ demoInstance es null");
+  }
+
+  demoInstance = null;
+  demoOwner = null;
+
+  io.emit("demo:status", { enabled: false });
+});
 
     /**
      * ===============================
      * DISCONNECT
      * ===============================
      */
-    socket.on("disconnect", () => {
-      console.log("⚠️ Cliente desconectado", socket.userId);
+   socket.on("disconnect", () => {
+  console.log("⚠️ Cliente desconectado", socket.userId);
+
+  if (socket.id === demoOwner && demoInstance) {
+    console.log("🛑 Demo detenida por desconexión del admin");
+
+    demoRunning = false;
+    demoInstance.stop();
+    demoInstance = null;
+    demoOwner = null;
+
+    io.emit("demo:status", { enabled: false });
+     }
     });
 
   });

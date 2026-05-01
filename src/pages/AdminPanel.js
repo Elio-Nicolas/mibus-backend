@@ -122,6 +122,23 @@ useEffect(() => {
   return () => socket.off("demo:status", handler);
 }, []);
 
+// =============== Registro del usuario================
+useEffect(() => {
+  if (!socket.connected) {
+    socket.connect();
+  }
+
+  if (user) {
+    socket.emit("register", {
+      userId: user.userId,
+      username: user.username,
+      role: user.role,
+      assignedUnit: null,
+      assignedLine: null
+    });
+  }
+}, []);
+
   // ================= FETCH =================
   useEffect(() => {
     fetch("http://localhost:4001/api/admin/users", {
@@ -755,7 +772,11 @@ return (
 
           {/* Contenedor del mapa */}
    <Box sx={{ flex: 1 }}>
-    <AdminMap buses={buses} busTrails={busTrails} />
+    <AdminMap 
+  buses={buses} 
+  busTrails={busTrails} 
+  demoEnabled={demoEnabled}
+/>
    </Box>
 
         </Paper>

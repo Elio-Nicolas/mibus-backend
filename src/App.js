@@ -10,9 +10,9 @@ function App() {
     <>
     <ThemeModeProvider>
       <BrowserRouter>
-      <AuthProvider>
-        <AppRouter />
-        </AuthProvider>
+       <AuthProvider>
+         <AppRouter />
+       </AuthProvider>
       </BrowserRouter>
     </ThemeModeProvider>
       <BrandFooter />

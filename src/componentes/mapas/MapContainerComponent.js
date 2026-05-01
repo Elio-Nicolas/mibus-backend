@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Pane } from "react-leaflet";
 import {
   MapContainer,
   TileLayer,
@@ -161,6 +162,8 @@ const MapContainerComponent = () => {
   const [selectedLinea, setSelectedLinea] = useState(null);
   const [paradasData] = useState(paradasGeoJSON);
   const [busTrails, setBusTrails] = useState({});
+  const [demoEnabled, setDemoEnabled] = useState(false);
+  const [demoLinea, setDemoLinea] = useState(null);
   const navigate = useNavigate();
   
   // === ESTADO GPS (PRECISIÓN Y FUENTE) ===
@@ -416,6 +419,8 @@ useEffect(() => {
     });
   };
 
+  
+
   const handleUserStopped = (userId) => {
     setBuses([]);
     setBusTrails({});
@@ -435,9 +440,17 @@ function FixMapResize() {
   const map = useMap();
 
   useEffect(() => {
-    setTimeout(() => {
-      map.invalidateSize();
-    }, 200);
+    if (!map) return;
+
+    const t = setTimeout(() => {
+      if (map._container) {   // 🔥 clave
+        try {
+          map.invalidateSize();
+        } catch (e) {}
+      }
+    }, 150);
+
+    return () => clearTimeout(t);
   }, [map]);
 
   return null;
@@ -445,71 +458,84 @@ function FixMapResize() {
 
   // ======================== RENDER ========================
 
-  return (
-    
-    <div id="map-wrapper" style={{ position: "relative", height: "100%", width: "100%", overflow: "hidden" }}>
+return (
+  <div id="map-wrapper" style={{ position: "relative", height: "100%", width: "100%", overflow: "hidden" }}>
 
-      {/* MAPA */}
-     <MapContainer
-  center={DEFAULT_POSITION}
-  zoom={17}
-  preferCanvas={true}
-  style={{ height: "100%", width: "100%" }}
->
+    <MapContainer
+      center={DEFAULT_POSITION}
+      zoom={17}
+      preferCanvas={true}
+      style={{ height: "100%", width: "100%" }}
+    >
 
-       
-        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap contributors" />
+      <TileLayer
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution="&copy; OpenStreetMap contributors"
+      />
 
-        {selectedLinea && paradasData && (
-            <ParadasLayer paradasData={paradasData} selectedLinea={selectedLinea} />
-        )}
+      {/* 🔵 PARADAS */}
+      <Pane name="paradasPane" style={{ zIndex: 400 }}>
+      {demoEnabled && (
+  <ParadasLayer linea={buses[0]?.line} />
+)}
 
-        <SetViewToLocation position={userPosition} />
+      </Pane>
 
-         {/* MARCADORES DE UNIDADES + ESTELA DE PUNTOS */}
-         
-{buses
-  .filter((bus) => {
-    if (typeof bus.lat !== "number" || typeof bus.lon !== "number") return false;
-    if (selectedLinea && bus.linea !== selectedLinea) return false;
-    return true;
-  })
-  .map((bus) => {
+      <SetViewToLocation position={userPosition} />
 
-    const line = bus.linea || bus.line;
-    const lineColor = LINE_COLORS[line] || "#9110b8ff";
-    const trail = busTrails[bus.unitId];
+      {/* 🟢 BUSES + ESTELA */}
+      <Pane name="busesPane" style={{ zIndex: 500 }}>
+        {buses
+          .filter((bus) => {
+            if (typeof bus.lat !== "number" || typeof bus.lon !== "number") return false;
+            if (selectedLinea && bus.linea !== selectedLinea) return false;
+            return true;
+          })
+          .map((bus) => {
 
-    const lat = Number(bus.lat);
-    const lon = Number(bus.lon);
+            const line = bus.linea || bus.line;
+            const lineColor = LINE_COLORS[line] || "#9110b8ff";
+            const trail = busTrails[bus.unitId];
 
-    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+            const lat = Number(bus.lat);
+            const lon = Number(bus.lon);
 
-    return (
-      <React.Fragment key={bus.unitId}>
+            if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
 
-        {/* ESTELA */}
-        {Array.isArray(trail) && trail.length > 1 && (
-          <Polyline
-            positions={trail}
-            pathOptions={{
-              color: lineColor,
-              weight: 3,
-              opacity: 0.6,
-            }}
-          />
-        )}
+            return (
+              <React.Fragment key={bus.unitId}>
 
-        {/* MARCADOR */}
-       <Marker position={[lat, lon]} icon={getBusIcon(bus.color || lineColor)}>
-        <BusPopup bus={bus} />
-       </Marker>
+                {/* ESTELA */}
+                {Array.isArray(trail) && trail.length > 1 && (
+                  <Polyline
+                    positions={trail}
+                    pathOptions={{
+                      color: lineColor,
+                      weight: 3,
+                      opacity: 0.6,
+                    }}
+                    pane="busesPane"
+                  />
+                )}
 
-      </React.Fragment>
-    );
-  })}
-  <FixMapResize />
-      </MapContainer>
+                {/* MARCADOR */}
+                <Marker
+                  position={[lat, lon]}
+                  icon={getBusIcon(bus.color || lineColor)}
+                  pane="busesPane"
+                >
+                  <BusPopup bus={bus} />
+                </Marker>
+
+              </React.Fragment>
+            );
+          })}
+      </Pane>
+
+      <FixMapResize />
+
+    </MapContainer>
+
        <div
   style={{
     position: "absolute",

@@ -19,6 +19,7 @@ function setupWebSocket(server) {
 }
 
 function broadcast(data) {
+  console.log("🚨 WS EMITIENDO:", data);
   clients.forEach((client) => {
     if (client.readyState === WebSocket.OPEN) {
       client.send(JSON.stringify(data));

@@ -17,13 +17,28 @@
  * El estado de vuelta vive en memoria por unidad.
  * ==========================================================
  */
+/**
+ * ==========================================================
+ * busSimulator.js
+ * ==========================================================
+ */
 
 const { detectStopEvents } = require("./stopEventsEngine");
 const { computeETA } = require("./etaEngine");
 const { processLocation } = require("../lapDetector");
 
-function sleep(ms) {
-  return new Promise(r => setTimeout(r, ms));
+// 🔥 REGISTRO GLOBAL REAL DE SIMULACIONES
+global.__SIMS__ = global.__SIMS__ || new Set();
+
+function sleep(ms, controller) {
+  return new Promise(resolve => {
+    const t = setTimeout(resolve, ms);
+
+    controller._cancelSleep = () => {
+      clearTimeout(t);
+      resolve();
+    };
+  });
 }
 
 function distance(a, b) {
@@ -43,9 +58,9 @@ async function startBusSimulation({
   saveLap
 }) {
 
-  // 🔥 ESTA ya es la ruta completa ida+vuelta continua
-  const path = route.forward;
+  console.log("🔥 START SIM:", unitId, "PID:", process.pid);
 
+  const path = route.forward;
   let i = startOffset % path.length;
 
   const busState = {
@@ -57,21 +72,34 @@ async function startBusSimulation({
 
   const controller = {
     running: true,
-    paused: false
+    paused: false,
+    _cancelSleep: null
   };
 
+  // 🔥 REGISTRAR SIM
+  global.__SIMS__.add(controller);
+
+  console.log("🔁 LOOP LANZADO:", unitId);
+
   async function loop() {
-    while (controller.running) {
+    while (true) {
+
+      if (!controller.running) {
+        console.log("💀 LOOP TERMINADO:", unitId);
+        return;
+      }
+
+      console.log("➡️ LOOP ITERANDO:", unitId);
 
       if (controller.paused) {
-        await sleep(stepTime / 20);
+        await sleep(100, controller);
         continue;
       }
 
       const point = path[i];
       const next = path[(i + 1) % path.length];
 
-      const speed = 20 + Math.random() * 500; // se camboi x 500 para velocidad
+      const speed = 20 + Math.random() * 500;
 
       const d = distance(point, next);
       const totalTime = d / (speed * 1000 / 3600);
@@ -81,7 +109,11 @@ async function startBusSimulation({
 
       for (let s = 0; s <= steps; s++) {
 
-        if (!controller.running) break;
+        if (!controller.running) {
+          console.log("💀 LOOP CORTADO EN FOR:", unitId);
+          return;
+        }
+
         if (controller.paused) break;
 
         const t = s / steps;
@@ -92,14 +124,15 @@ async function startBusSimulation({
         const position = { lat, lon };
 
         await processLocation(
-         unitId,
-         linea,
-         lat,
-         lon,
-         driverName,
-         Date.now(),
-         io
+          unitId,
+          linea,
+          lat,
+          lon,
+          driverName,
+          Date.now(),
+          io
         );
+
         const safeSpeed = Math.max(speed, 5);
 
         const etaList = computeETA(
@@ -132,7 +165,7 @@ async function startBusSimulation({
           lastUpdate: new Date().toISOString()
         });
 
-        await sleep(stepTime);
+        await sleep(stepTime, controller);
       }
 
       i++;
@@ -158,7 +191,17 @@ async function startBusSimulation({
   loop();
 
   return {
-    stop: () => controller.running = false,
+    stop: () => {
+      console.log("🛑 STOP LLAMADO:", unitId);
+
+      controller.running = false;
+
+      if (controller._cancelSleep) {
+        controller._cancelSleep();
+      }
+
+      global.__SIMS__.delete(controller);
+    },
     pause: () => controller.paused = true,
     resume: () => controller.paused = false
   };

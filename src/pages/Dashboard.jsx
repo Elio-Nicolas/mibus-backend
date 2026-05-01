@@ -10,11 +10,12 @@
  * - Renderizar gráficos
  * - Mostrar historial de vueltas jerárquico
  *
- * Layout original respetado.
  * ==========================================================
  */
 
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { socket } from "../socket";
 
 import {
   Button,
@@ -47,6 +48,7 @@ const lineNames = {
   "64f0000000000000000000e2": " Este",
   "64f0000000000000000000o1": " Oeste"
 };
+
 
 /* ==========================================================
    KPI CARD
@@ -108,7 +110,14 @@ const Dashboard = () => {
 
   const [selectedDay, setSelectedDay] = useState(null);
 
+  const navigate = useNavigate();
 
+  const [drivers, setDrivers] = useState([]);
+
+  const [demoState, setDemoState] = useState({
+    totalBuses: 0,
+    drivers: []
+   });
   /* ================= FETCH DASHBOARD ================= */
 
   useEffect(() => {
@@ -133,9 +142,44 @@ const Dashboard = () => {
 
     loadDashboard();
 
-  }, []);
+    const loadDemo = async () => {
+  try {
+    const res = await fetch("http://localhost:4001/api/demo/status");
+    const data = await res.json();
 
+    setStats(prev => ({
+      ...prev,
+      buses: data.buses,
+      choferes: data.choferes
+    }));
 
+    setDrivers(data.drivers);
+
+  } catch (err) {
+    console.error("Error cargando demo", err);
+  }
+};
+
+loadDemo();
+
+  }, 
+
+  []);
+
+  useEffect(() => {
+
+  const handler = (data) => {
+    console.log("DEMO STATE:", data);
+    setDemoState(data);
+  };
+
+  socket.on("demo:state", handler);
+
+  return () => {
+    socket.off("demo:state", handler);
+  };
+
+}, []);
   /* ================= FETCH LAPS ================= */
 
   const loadDayLine = async () => {
@@ -193,7 +237,7 @@ const Dashboard = () => {
 
 
   /* ==========================================================
-     UI
+                            RENDER
   ========================================================== */
 
   return (
@@ -221,12 +265,23 @@ const Dashboard = () => {
           Centro de Control
         </Typography>
 
-        <Button
-          variant="contained"
-          onClick={openMenu}
-        >
-          Historial de Vueltas
-        </Button>
+        <Box sx={{ display: "flex", gap: 1 }}>
+  
+         <Button
+          variant="outlined"
+          onClick={() => navigate("/admin")}
+         >
+          Volver al Panel
+         </Button>
+
+         <Button
+           variant="contained"
+           onClick={openMenu}
+           >
+            Historial de Vueltas
+          </Button>
+
+        </Box>
 
       </Box>
 
@@ -314,11 +369,11 @@ const Dashboard = () => {
       <Grid container spacing={2} sx={{ mb: 2 }}>
 
         <Grid size={{ xs: 12, md: 3 }}>
-          <KpiCard title="Buses activos" value={stats.buses} />
+          <KpiCard title="Buses activos" value={demoState.totalBuses} />
         </Grid>
 
         <Grid size={{ xs: 12, md: 3 }}>
-          <KpiCard title="Choferes en ruta" value={stats.choferes} />
+          <KpiCard title="Choferes en ruta" value={demoState.drivers.length} />
         </Grid>
 
         <Grid size={{ xs: 12, md: 3 }}>
@@ -371,6 +426,14 @@ const Dashboard = () => {
                 ))}
               </List>
 
+              <List>
+                 {drivers.map((d, i) => (
+                   <ListItem key={i}>
+                      <ListItemText primary={`Chofer: ${d}`} />
+                   </ListItem>
+                ))}
+              </List>
+              
             </CardContent>
           </Card>
         </Grid>

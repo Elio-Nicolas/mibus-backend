@@ -70,6 +70,9 @@ app.use("/api/auth", authRoutes);
 
 const dashboardRoutes = require("./routes/dashboardRoutes");
 app.use("/api/dashboard", dashboardRoutes);
+
+const demoRoutes = require("./routes/demoRoutes");
+app.use("/api/demo", demoRoutes);
 /* ======================= MONGO ======================= */
 
 mongoose.connect(
@@ -77,11 +80,11 @@ mongoose.connect(
 );
 
 mongoose.connection.on("open", () => {
-  console.log("✅ Mongo conectado correctamente");
+  console.log(" Mongo conectado correctamente");
 });
 
 mongoose.connection.on("error", (err) => {
-  console.log("❌ Error Mongo:", err);
+  console.log(" Error MongoDB:", err);
 });
 
 /* ======================= START SERVER ======================= */
@@ -89,5 +92,5 @@ mongoose.connection.on("error", (err) => {
 const PORT = process.env.PORT || 4001;
 
 server.listen(PORT, "0.0.0.0", () => {
-  console.log("🔥 SERVIDOR CORRIENDO EN PUERTO", PORT);
+  console.log("SERVIDOR CORRIENDO EN PUERTO", PORT);
 });
