@@ -1,3 +1,55 @@
+/**
+ * ===============================
+ * MAPA DEL CHOFER (VIEW PRINCIPAL)
+ * ===============================
+ *
+ * Este componente:
+ *
+ * - Renderiza un mapa Leaflet centrado en la ubicación del chofer
+ * - Muestra la posición actual en tiempo real con un Marker
+ *
+ * ===============================
+ * FUNCIONALIDAD PRINCIPAL
+ * ===============================
+ *
+ * - Recibe la posición del chofer como prop (posicion)
+ * - Renderiza un mapa base (OpenStreetMap)
+ * - Coloca un marcador en la ubicación actual
+ * - Re-centra automáticamente el mapa cuando cambia la posición
+ *
+ * ===============================
+ * SUBCOMPONENTES INTERNOS
+ * ===============================
+ *
+ * RecenterMap:
+ * - Escucha cambios en la posición
+ * - Ajusta la vista del mapa suavemente (setView)
+ *
+ * ===============================
+ * CONFIGURACIÓN LEAFLET
+ * ===============================
+ *
+ * - Corrige rutas de íconos por defecto de Leaflet
+ * - Asegura que los markers se rendericen correctamente en producción
+ *
+ * ===============================
+ * RESPONSABILIDAD
+ * ===============================
+ *
+ * Este componente es principalmente PRESENTACIONAL con mínima lógica:
+ *
+ * - Render del mapa
+ * - Render de marcador
+ * - Recentrado de vista
+ *
+ * ===============================
+ * OBSERVACIÓN
+ * ===============================
+ *
+ * El useEffect global de desmontaje es solo para debugging
+ *
+ */
+
 import { useEffect } from "react";
 import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";

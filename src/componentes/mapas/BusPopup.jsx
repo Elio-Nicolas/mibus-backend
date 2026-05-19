@@ -1,3 +1,48 @@
+/**
+ * ===============================
+ * POPUP DE BUS (MAPA)
+ * ===============================
+ *
+ * Este componente:
+ *
+ * - Renderiza la ventana emergente (Popup) de Leaflet para cada bus
+ * - Muestra información detallada del estado de una unidad en tiempo real
+ *
+ * ===============================
+ * INFORMACIÓN QUE MUESTRA
+ * ===============================
+ *
+ * - Número de unidad (unitId)
+ * - Línea asignada
+ * - Nombre del chofer
+ * - Próxima parada
+ * - ETA (tiempo estimado de llegada)
+ * - Estado del bus:
+ *   → En movimiento
+ *   → En parada
+ * - Última actualización de ubicación
+ *
+ * ===============================
+ * RESPONSABILIDAD
+ * ===============================
+ *
+ * Este componente es puramente PRESENTACIONAL:
+ *
+ * - No maneja estado
+ * - No hace cálculos
+ * - No consulta datos externos
+ *
+ * Solo recibe un objeto "bus" y lo renderiza
+ *
+ * ===============================
+ * UTILIDAD
+ * ===============================
+ *
+ * Permite visualizar información contextual del bus
+ * directamente desde el mapa interactivo
+ *
+ */
+
 import React from "react";
 import { Popup } from "react-leaflet";
 

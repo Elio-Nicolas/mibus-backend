@@ -7,76 +7,44 @@ import {
   Polyline,
   useMap,
 } from "react-leaflet";
-import paradasGeoJSON from "../../public/lineas.json";
 import ParadasLayer from "./ParadasLayer";
 import BusPopup from "./BusPopup";
-import { useLocation, useNavigate } from "react-router-dom";
 import L from "leaflet";
-import { IconButton } from "@mui/material";
 import LineasDrawer from "./LineasDrawer";
 import ClimaDrawer from "./ClimaDrawer";
 import ClimaWidget from "../clima/ClimaWidget";
 import React from "react";
 import "./Drawers.css";
-import { socket } from "../../socket"; 
-// ajustá la ruta si hace falta
-
-const ROLE_UI = {
-  GUEST: {
-    lineas: true,
-    clima: true,
-    engranaje: false,
-    cerrarSesion: false,
-    chofer: false,
-    inspector: false,
-  },
-  PASAJERO: {
-    lineas: true,
-    clima: true,
-    engranaje: false,
-    cerrarSesion: false,
-    chofer: false,
-    inspector: false,
-  },
-  INSPECTOR: {
-    lineas: true,
-    clima: true,
-    engranaje: false,
-    cerrarSesion: true,
-    chofer: false,
-    inspector: false,
-  },
-  CHOFER: {
-    lineas: false,
-    clima: false,
-    engranaje: false,
-    cerrarSesion: true,
-    chofer: false,
-    inspector: false,
-  },
-  ADMIN: {
-    lineas: true,
-    clima: true,
-    engranaje: true,
-    cerrarSesion: true,
-    chofer: true,
-    inspector: true,
-  },
-};
+import NearestStopDrawer from "./NearestStopDrawer";
+import { useDistance } from "./hooks/useDistance";
+import { useUserToStopRoute } from "./hooks/useUserToStopRoute";
+import { IconButton } from "@mui/material";
+import { useChoferTracking } from "./hooks/useChoferTracking";
+import { useAuthUser } from "../auth/useAuthUser";
+import { useStoredUserId } from "../auth/useStoredUserId";
+import { useMapUI } from "./hooks/useMapUI";
+import { useBusLayer } from "./hooks/useBusLayer";
+import { useBusSocket } from "./hooks/useBusSocket";
+import { useMapUIController } from "./hooks/useMapUIController";
+import { useParadas } from "./hooks/useParadas";
+import { useUserLocation } from "./hooks/useUserLocation";
+import { useNearestStop } from "./hooks/useNearestStop";
+import { Popup } from "react-leaflet";
+//import L from "leaflet";
 
 const DEFAULT_POSITION = [-33.6756, -65.4578];
-const LINE_COLORS = {
-  A: "#007bff",
-  B: "#e91e63",
-  C: "#4caf50",
-  D: "#ff9800",
-};
 
 const SetViewToLocation = ({ position }) => {
   const map = useMap();
+  const hasCentered = useRef(false);
+
   useEffect(() => {
-    if (position) map.setView(position, 13);
+    if (position && !hasCentered.current) {
+      map.setView(position, 15);
+      hasCentered.current = true;
+    }
   }, [position, map]);
+
   return null;
 };
 
@@ -95,53 +63,6 @@ const getBusIcon = (color = "#007bff") => {
   });
 };
 
-/*const getRoleFromToken = () => {
-  const token =
-    localStorage.getItem("token") ||
-    sessionStorage.getItem("token");
-
-  if (!token) return null;
-
-  try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    return payload.role || null;
-  } catch {
-    return null;
-  }
-};*/
-
- // ================= HANDLES ====================== //
-  /*const handleChangeUsername = () => {
-    const newName = prompt("Ingrese su nuevo nombre:", username);
-    if (newName) {
-      localStorage.setItem("username", newName);
-      setUsername(newName);
-    }
-  };
-
-  const handleImageChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const userId = localStorage.getItem("userId") || sessionStorage.getItem("userId");
-    const formData = new FormData();
-    formData.append("image", file);
-    try {
-     const response = await fetch(`http://localhost:4001/api/users/upload/${userId}`,{
-     method: "PUT",
-     body: formData,
-    }
-    );
-
-   const data = await response.json();
-    if (data.user && data.user.image) {
-        localStorage.setItem("image", data.user.image);
-        setImage(data.user.image);
-      }
-    } catch (error) {
-      console.error("Error subiendo imagen:", error);
-    }
-  };
-  */
 const handleLogout = () => {
   localStorage.removeItem("user");
   localStorage.removeItem("unitId");
@@ -149,292 +70,43 @@ const handleLogout = () => {
 };
 
 
-/* === END NEW === */
+/* === Componente === */
 
 const MapContainerComponent = () => {
 
-  const [isSharing, setIsSharing] = useState(false);
   const [userPosition] = useState(null);
-  const watchIdRef = useRef(null);
-  const [buses, setBuses] = useState([]); // aquí almacenamos los usuarios mostrados en el mapa
-  const [openLineasDrawer, setOpenLineasDrawer] = useState(false);
-  const [mostrarClima, setMostrarClima] = useState(false);
-  const [selectedLinea, setSelectedLinea] = useState(null);
-  const [paradasData] = useState(paradasGeoJSON);
-  const [busTrails, setBusTrails] = useState({});
   const [demoEnabled, setDemoEnabled] = useState(false);
-  const [demoLinea, setDemoLinea] = useState(null);
-  const navigate = useNavigate();
-  
-  // === ESTADO GPS (PRECISIÓN Y FUENTE) ===
-  const [ setGpsInfo] = useState({accuracy: null,source: "desconocida",});
-
-  // === SELECCIONA UNIDAD ===
+  const { buses, busTrails } = useBusSocket();
+  const { uiState, uiActions } = useMapUIController();
+  const { validBuses, trails } = useBusLayer(buses, busTrails, uiState.selectedLinea);
   const [selectedUnit, setSelectedUnit] = useState(localStorage.getItem("unitId") || "");
-
- // === USER INFO ===
-const [username] = useState(
-  localStorage.getItem("username") ||
-  sessionStorage.getItem("username") ||
-  "Desconocido"
+  const { user, role, username } = useAuthUser();
+  const storedUserId = useStoredUserId();
+  const ui = useMapUI(role);
+  const paradas = useParadas(uiState.selectedLinea);
+  const userLocation = useUserLocation();
+  const [selectedStop, setSelectedStop] = useState(null);
+  const nearestStop = useNearestStop(
+  uiState.gpsDrawerOpen ? userLocation : null,
+  uiState.gpsDrawerOpen ? paradas : null );
+  const activeStop = selectedStop ?? nearestStop;
+  const activeDistance = useDistance(userLocation, activeStop);
+  
+  const routeData = useUserToStopRoute(
+  uiState.gpsDrawerOpen ? userLocation : null,
+  uiState.gpsDrawerOpen ? activeStop : null
 );
 
-const storedUser = localStorage.getItem("user");
-let user = null;
-let role = "GUEST";
+const route = routeData?.route;
 
-//tomamos el user si realmente existe y tiene role
-if (storedUser) {
-  try {
-    const parsed = JSON.parse(storedUser);
-    if (parsed?.role && ROLE_UI[parsed.role]) {
-      user = parsed;
-      role = parsed.role;
-    }
-  } catch (e) {
-    role = "GUEST";
-  }
-}
-
-const ui = ROLE_UI[role] || ROLE_UI.GUEST;
-
-// Header público = usuarios que NO tienen cerrar sesión
-const showPublicHeader = !ui.cerrarSesion;
-
-const assignedLine =
-  localStorage.getItem("assignedLine") ||
-  sessionStorage.getItem("assignedLine");
-
-  /* === CRITICO: asegurar que exista un userId único por dispositivo ===
-     Si no existe en localStorage/sessionStorage, lo creamos (crypto.randomUUID o fallback).
-     Esto evita que PC y teléfono compartan el mismo ID.
-  */
-  const [storedUserId] = useState(() => {
-    let id = localStorage.getItem("userId") || sessionStorage.getItem("userId");
-    if (!id) {
-      // navegador moderno: crypto.randomUUID(); fallback simple si no disponible:
-      id = (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID() 
-         : `id-${Date.now()}-${Math.floor(Math.random()*10000)}`;
-      localStorage.setItem("userId", id);
-      sessionStorage.setItem("userId", id);
-    }
-    return id;
+const [setRouteInfo] = useState(null);
+  const {isSharing, startSharing, stopSharing} 
+    = useChoferTracking({
+    role,
+    selectedUnit,
+    storedUserId,
+    username
   });
-
-  /* ==== START SHARING ====
-     - Solicita geolocalización
-     - Actualiza userPosition local
-     - Emite event 'locationUpdate' (payload con nombres que el backend espera: id, username, lat, lon)
-     - También emite 'startSharing' para marcar el estado en el backend (opcional)
-  */
-const startSharing = () => {
-
-  if (isSharing) return;
-
-  if (!("geolocation" in navigator)) {
-    alert("La geolocalización no está disponible");
-    return;
-  }
-
-  if (role !== "CHOFER") {
-  alert("Solo los choferes pueden compartir ubicación");
-  return;
-}
-
-  if (!selectedUnit) {
-  alert("Debe seleccionar una unidad antes de iniciar el servicio");
-  return;
-}
-
- // setIsSharing(true);
- // socket.emit("startSharing", storedUserId);
-
-/*
-  watchIdRef.current = navigator.geolocation.watchPosition(
-  (pos) => {
-   const { latitude, longitude, accuracy, speed } = pos.coords;
-
-    console.log("📡 GPS:", { //prueba de campo
-      lat: latitude,
-      lon: longitude,
-      accuracy,
-      speed
-    });
-
-    // Filtro scepta precision baja solo para pc
-    const isDesktop = !/Mobi|Android/i.test(navigator.userAgent);
-
-    if (accuracy > 50 && !isDesktop) {
-     console.warn("⚠ GPS impreciso (celular)");
-     return;
-    }
-
-    if (accuracy > 2000 && isDesktop) {
-     console.warn("⚠ Ubicación demasiado imprecisa incluso para PC");
-     return;
-    }
-
-    setGpsInfo({
-    accuracy,
-    source: isDesktop ? "IP / WiFi (PC)" : "GPS (móvil)"
-    });
-
- //------------------------------------------------------------------------
-    
-    if (lastPositionRef.current) {
-     const [prevLat, prevLon] = lastPositionRef.current;
-
-     const distance = L.latLng(prevLat, prevLon)
-      .distanceTo(L.latLng(latitude, longitude));
-
-     // Si el salto es irreal (ej: > 200 m en segundos)
-    if (distance > 200) {
-     console.warn("🚫 Salto GPS descartado:", distance, "m");
-     return;
-    }
-  }
-
- lastPositionRef.current = [latitude, longitude];
-
-    const newPosition = [latitude, longitude];
-    setUserPosition(newPosition);
-
-    socket.emit("locationUpdate", {
-      unitId: selectedUnit,
-      driverId: storedUserId,
-      driverName: username,
-      lat: latitude,
-      lon: longitude,
-      accuracy,
-      speed
-    });
-  },
-  (err) => {
-    console.error("❌ Error GPS:", err.message);
-  },
-  {
-    enableHighAccuracy: true,
-    timeout: 15000,
-    maximumAge: 0
-  }
-); */
-
-};
-
-  /* ==== STOP SHARING ====
-     - Detiene geolocalización
-     - Emite 'stopSharing' con el userId (backend decide si borrar o marcar offline)
-     - NO borramos la posición local (para hacerlo descomentar setUserPosition(null))
-  */
-  const stopSharing = () => {
-    setIsSharing(false);
-
-    if (watchIdRef.current) {
-      navigator.geolocation.clearWatch(watchIdRef.current);
-      watchIdRef.current = null;
-    }
-
-    // opcionalmente borra la posición local:
-    // setUserPosition(null);
-
-    //socket.emit("stopSharing", storedUserId);
-  };
-
-  /*// === FETCH INITIAL (ruta REST /buses) ===
-  const fetchBuses = async () => {
-  try {
-    const response = await fetch("http://localhost:4001/buses");
-    if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
-    const data = await response.json();
-
-    setBuses(
-      data.map((u) => ({
-        unitId: u.unitId,
-        driverName: u.driverName,
-        lat: u.latitude,   // backend REST devuelve latitude
-        lon: u.longitude, // backend REST devuelve longitude
-        color: u.color || "#007bff",
-        lastUpdate: u.lastUpdate,
-      }))
-    );
-  } catch (error) {
-    console.error("Error obteniendo buses:", error);
-  }
-};*/
-
-
-  /* === SOCKET LISTENERS ===
-     - Escuchamos 'busUpdate' (lista completa o parcial) enviado por el backend
-     - Escuchamos 'userStopped' para remover usuarios que dejan de compartir (si así lo querés)
-  */
-
-useEffect(() => {
-
-  const handleBusUpdate = (payload) => {
-    console.log("🔥 EVENTO busUpdate RECIBIDO", payload);
-
-    const list = Array.isArray(payload) ? payload : [payload];
-
-    setBuses((prev) => {
-      const updated = [...prev];
-
-      list.forEach((u) => {
-        console.log("BUS REAL:", u);
-
-        const index = updated.findIndex(b => b.unitId === u.unitId);
-
-        const newBus = {
-          unitId: u.unitId,
-          driverName: u.driverName,
-          linea: u.linea || u.line,
-          lat: u.lat,
-          lon: u.lon,
-          color: u.color || "#007bff",
-          lastUpdate: u.lastUpdate,
-          nextStopName: u.nextStopName,
-          etaSeconds: u.etaSeconds,
-          atStop: u.atStop
-        };
-
-        if (index !== -1) {
-          updated[index] = { ...updated[index], ...newBus };
-        } else {
-          updated.push(newBus);
-        }
-      });
-
-      return updated;
-    });
-
-    setBusTrails((prev) => {
-      const next = { ...prev };
-
-      list.forEach((u) => {
-        if (typeof u.lat !== "number" || typeof u.lon !== "number") return;
-        if (!next[u.unitId]) next[u.unitId] = [];
-        next[u.unitId] = [...next[u.unitId], [u.lat, u.lon]].slice(-8);
-      });
-
-      return next;
-    });
-  };
-
-  
-
-  const handleUserStopped = (userId) => {
-    setBuses([]);
-    setBusTrails({});
-  };
-
-  socket.on("busUpdate", handleBusUpdate);
-  socket.on("userStopped", handleUserStopped);
-
-  return () => {
-    socket.off("busUpdate", handleBusUpdate);
-    socket.off("userStopped", handleUserStopped);
-  };
-
-}, []);
 
 function FixMapResize() {
   const map = useMap();
@@ -443,7 +115,7 @@ function FixMapResize() {
     if (!map) return;
 
     const t = setTimeout(() => {
-      if (map._container) {   // 🔥 clave
+      if (map._container) {  
         try {
           map.invalidateSize();
         } catch (e) {}
@@ -456,8 +128,28 @@ function FixMapResize() {
   return null;
 }
 
-  // ======================== RENDER ========================
+useEffect(() => {
+  if (!uiState.selectedLinea) return;
 
+  //  CERRAR GPS
+  uiActions.closeGpsDrawer();
+
+}, [uiState.selectedLinea]);
+
+useEffect(() => {
+  uiActions.closeGpsDrawer();
+
+  const t = setTimeout(() => {
+    setSelectedStop(null);
+  }, 0);
+
+  return () => clearTimeout(t);
+}, [uiState.selectedLinea]);
+
+console.log("selectedStop", selectedStop);
+console.log("nearestStop", nearestStop);
+console.log("activeStop", activeStop);
+  // ======================== RENDER ========================
 return (
   <div id="map-wrapper" style={{ position: "relative", height: "100%", width: "100%", overflow: "hidden" }}>
 
@@ -475,62 +167,124 @@ return (
 
       {/* 🔵 PARADAS */}
       <Pane name="paradasPane" style={{ zIndex: 400 }}>
-      {demoEnabled && (
-  <ParadasLayer linea={buses[0]?.line} />
+      {paradas && (
+    <ParadasLayer
+  //key={activeStop ? activeStop.id : "no-stop"}
+  paradasData={paradas}
+  selectedLinea={uiState.selectedLinea}
+  visible={!!uiState.selectedLinea}
+  nearestStop={activeStop}
+  onStopClick={(stop) => {
+  setSelectedStop({
+    ...stop,
+    id: stop.id || crypto.randomUUID(),
+  });
+
+  uiActions.openGpsDrawer();
+}}
+/>
+     )}
+
+{uiState.gpsDrawerOpen && route && (
+  <Polyline
+    positions={route}
+    pathOptions={{
+      color: "red",
+      weight: 4,
+    }}
+  />
+)}
+
+{uiState.gpsDrawerOpen && activeStop && (
+  <Marker
+   // key={`active-${activeStop.id}`}
+    position={[
+      Number(activeStop.geometry.coordinates[1]),
+      Number(activeStop.geometry.coordinates[0]),
+    ]}
+    icon={L.divIcon({
+      className: "",
+      html: `
+        <div style="
+          width:18px;
+          height:18px;
+          background:red;
+          border-radius:50%;
+          border:3px solid white;
+          box-shadow:0 0 10px red;
+        "></div>
+      `,
+      iconSize: [18, 18],
+      iconAnchor: [9, 9],
+    })}
+  >
+    {/** <Popup>
+  📍 Parada seleccionada<br/>
+  Distancia: {(activeDistance * 1000).toFixed(0)} m
+</Popup>*/} 
+  </Marker>
 )}
 
       </Pane>
 
-      <SetViewToLocation position={userPosition} />
+      <SetViewToLocation position={userLocation && [userLocation.lat, userLocation.lon]} />
 
-      {/* 🟢 BUSES + ESTELA */}
-      <Pane name="busesPane" style={{ zIndex: 500 }}>
-        {buses
-          .filter((bus) => {
-            if (typeof bus.lat !== "number" || typeof bus.lon !== "number") return false;
-            if (selectedLinea && bus.linea !== selectedLinea) return false;
-            return true;
-          })
-          .map((bus) => {
+      {userLocation && (
+  <Marker
+   
+    position={[userLocation.lat, userLocation.lon]}
+    icon={L.divIcon({
+      html: `
+        <div style="
+          width:14px;
+          height:14px;
+          background:#00e5ff;
+          border-radius:50%;
+          border:3px solid white;
+          box-shadow:0 0 10px #00e5ff;
+        "></div>
+      `,
+      className: "",
+      iconSize: [18, 18],
+      iconAnchor: [9, 9],
+    })}
+  />
+)}
 
-            const line = bus.linea || bus.line;
-            const lineColor = LINE_COLORS[line] || "#9110b8ff";
-            const trail = busTrails[bus.unitId];
+     <Pane name="busesPane" style={{ zIndex: 500 }}>
+  {validBuses.map((bus) => {
+    const lineColor = bus.color;
+    const trail = trails[bus.unitId];
 
-            const lat = Number(bus.lat);
-            const lon = Number(bus.lon);
+    return (
+      <React.Fragment key={bus.unitId}>
 
-            if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+        {/* ESTELA */}
+        {Array.isArray(trail) && trail.length > 1 && (
+          <Polyline
+            positions={trail}
+            pathOptions={{
+              color: lineColor,
+              weight: 3,
+              opacity: 0.6,
+            }}
+            pane="busesPane"
+          />
+        )}
 
-            return (
-              <React.Fragment key={bus.unitId}>
+        {/* MARCADOR */}
+        <Marker
+          position={[bus.lat, bus.lon]}
+          icon={getBusIcon(lineColor)}
+          pane="busesPane"
+        >
+          <BusPopup bus={bus} />
+        </Marker>
 
-                {/* ESTELA */}
-                {Array.isArray(trail) && trail.length > 1 && (
-                  <Polyline
-                    positions={trail}
-                    pathOptions={{
-                      color: lineColor,
-                      weight: 3,
-                      opacity: 0.6,
-                    }}
-                    pane="busesPane"
-                  />
-                )}
-
-                {/* MARCADOR */}
-                <Marker
-                  position={[lat, lon]}
-                  icon={getBusIcon(bus.color || lineColor)}
-                  pane="busesPane"
-                >
-                  <BusPopup bus={bus} />
-                </Marker>
-
-              </React.Fragment>
-            );
-          })}
-      </Pane>
+      </React.Fragment>
+    );
+  })}
+</Pane>
 
       <FixMapResize />
 
@@ -557,7 +311,15 @@ return (
   {ui.lineas && (
   <IconButton
   title="Ver líneas"
-  onClick={() => setOpenLineasDrawer(true)}
+  onClick={() => {
+  if (uiState.selectedLinea) {
+    console.log("APAGANDO PARADAS");
+    uiActions.selectLinea(null);
+  } else {
+    console.log("ABRIENDO DRAWER");
+    uiActions.openLineas();
+  }
+}}
 >
   🚌
 </IconButton>
@@ -568,7 +330,7 @@ return (
  {ui.clima && (
   <IconButton
   title="Clima"
-  onClick={() => setMostrarClima(true)}
+  onClick={uiActions.openClima}
 >
   ☀️
 </IconButton>
@@ -579,7 +341,7 @@ return (
   {ui.engranaje && (
   <IconButton
   title="Panel administrador"
-  onClick={() => navigate("/admin")}
+  onClick={uiActions.goAdmin}
 >
   ⚙️
 </IconButton>
@@ -590,7 +352,7 @@ return (
 {ui.engranaje && (
   <IconButton
     title="Seguimiento de choferes"
-    onClick={() => navigate("/admin/choferes")}
+    onClick={uiActions.goChoferes}
     sx={{
       backgroundColor: "#2e7d32",
       color: "white",
@@ -606,7 +368,7 @@ return (
 {ui.engranaje && (
   <IconButton
     title="Seguimiento de inspectores"
-    onClick={() => navigate("/admin/inspectores")}
+    onClick={uiActions.goInspectores}
     sx={{
       backgroundColor: "#1565c0",
       color: "white",
@@ -622,7 +384,16 @@ return (
   <IconButton onClick={handleLogout}>
     🔒
   </IconButton>
+
+  
 )}
+
+ <IconButton
+  title="Mi parada más cercana"
+  onClick={uiActions.openGpsDrawer}
+>
+  🗺️
+</IconButton>
 
 </div>
 
@@ -684,7 +455,7 @@ return (
   <>
     {/* LÍNEAS */}
     <IconButton
-      onClick={() => setOpenLineasDrawer(true)}
+      onClick={uiActions.openLineas}
       title="Ver líneas"
       style={{ backgroundColor: "white" }}
     >
@@ -693,7 +464,7 @@ return (
 
     {/* CLIMA */}
     <IconButton
-      onClick={() => setMostrarClima(true)}
+      onClick={uiActions.openClima}
       title="Ver clima"
       style={{ backgroundColor: "white" }}
     >
@@ -711,18 +482,31 @@ return (
   </>
 )}
 
-      <LineasDrawer
-        open={openLineasDrawer}
-        onClose={() => setOpenLineasDrawer(false)}
-        onLineaSelect={(linea) => {
-          setSelectedLinea(linea);
-          setOpenLineasDrawer(false);
-        }}
-      />
+     <LineasDrawer
+  open={uiState.openLineasDrawer}
+  onClose={uiActions.closeLineas}
+  onLineaSelect={(linea) => {
+  uiActions.selectLinea(linea);
+  uiActions.closeGpsDrawer();
+}}
+/>
 
-      <ClimaDrawer open={mostrarClima} onClose={() => setMostrarClima(false)}>
-        <ClimaWidget />
+      <ClimaDrawer
+         open={uiState.mostrarClima}
+         onClose={uiActions.closeClima}
+      >
+      <ClimaWidget />
       </ClimaDrawer>
+
+      <NearestStopDrawer
+       key={`${activeStop?.id}-${activeDistance}`}
+       open={uiState.gpsDrawerOpen}
+       onClose={uiActions.closeGpsDrawer}
+       stop={activeStop}
+       distance={activeDistance}
+       
+       streetName={routeData?.streetName}
+      />
     </div>
   );
 };

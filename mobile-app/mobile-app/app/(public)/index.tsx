@@ -1,9 +1,10 @@
 import { View, StyleSheet, TouchableOpacity, Text, Animated, Modal } from "react-native";
-import MapView, { Marker } from "react-native-maps";
+import MapView, { Marker, Polyline } from "react-native-maps";
 import AdminHeader from "@/components/AdminHeader";
 import paradas from "@/data/paradas.json";
 import * as Location from "expo-location";
 import { useEffect, useState, useRef } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type Stop = {
   id: string;
@@ -13,6 +14,7 @@ type Stop = {
 };
 
 export default function MapScreen() {
+
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedLine, setSelectedLine] = useState<string | null>(null);
   const [userLocation, setUserLocation] = useState<Location.LocationObjectCoords | null>(null);
@@ -20,13 +22,22 @@ export default function MapScreen() {
   const [showPopup, setShowPopup] = useState(false);
   const popupAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(0)).current;
+  const [routeCoords, setRouteCoords] = useState<any[]>([]);
+  const [routeData, setRouteData] = useState<{
+  coordinates: any[];
+  distance: number;
+  duration: number;
+  streetName?: string;
+} | null>(null);
+  const [selectedStop, setSelectedStop] = useState<any>(null);
+  const insets = useSafeAreaInsets();
   const [closestStop, setClosestStop] = useState<{
     stop: any;
     distance: number;
   } | null>(null);
+  const activeStop = selectedStop || closestStop?.stop;
   const [popupPos, setPopupPos] = useState<{ x: number; y: number } | null>(null);
   const mapRef = useRef<MapView>(null);
-
   const [region, setRegion] = useState({
     latitude: -33.675,
     longitude: -65.458,
@@ -41,18 +52,41 @@ export default function MapScreen() {
     return 18;
   };
 
+  const [routeInfo, setRouteInfo] = useState<{
+  duration: number;
+  distance: number;
+} | null>(null);
+
   // ==================== UBICACION USUARIO ======================= //
-  useEffect(() => {
-    (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
+ useEffect(() => {
+  (async () => {
+    try {
+      let { status } =
+        await Location.requestForegroundPermissionsAsync();
+
       if (status !== "granted") {
         console.log("Permiso denegado");
         return;
       }
-      let location = await Location.getCurrentPositionAsync({});
+
+      const enabled = await Location.hasServicesEnabledAsync();
+
+      if (!enabled) {
+        console.log("GPS apagado");
+        return;
+      }
+
+      let location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
+
       setUserLocation(location.coords);
-    })();
-  }, []);
+
+    } catch (err) {
+      console.log("ERROR UBICACION:", err);
+    }
+  })();
+}, []);
 
   // ======================= PARADA MAS CERCANA ======================== //
   useEffect(() => {
@@ -123,6 +157,18 @@ export default function MapScreen() {
     return R * c;
   };
 
+  // ==================== CALCULO DE DISTANCIA ============================ //
+
+  const activeDistance =
+  userLocation && activeStop
+    ? getDistance(
+        userLocation.latitude,
+        userLocation.longitude,
+        activeStop.geometry.coordinates[1],
+        activeStop.geometry.coordinates[0]
+      )
+    : null;
+
   // ======================= ANIMACION TIPO GOOGLE ======================== //
   useEffect(() => {
   if (showPopup) {
@@ -139,6 +185,62 @@ export default function MapScreen() {
     }).start();
   }
 }, [showPopup]);
+
+// ========================== PARADA CERCANA A ELEGIR =========================== //
+
+const fetchRouteToStop = async (stop: any) => {
+  if (!userLocation) return;
+
+  try {
+
+     setRouteData(null);
+
+    const response = await fetch(
+      "http://192.168.100.4:4001/api/map/route-user-stop",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          user: {
+            lat: userLocation.latitude,
+            lon: userLocation.longitude,
+          },
+          stop: {
+            lat: stop.geometry.coordinates[1],
+            lon: stop.geometry.coordinates[0],
+          },
+        }),
+      }
+    );
+
+const data = await response.json();
+
+if (data.error) {
+  console.log("OSRM ERROR:", data);
+  return;
+}
+
+const formatted = data.coordinates.map((p: any) => ({
+  latitude: p.lat,
+  longitude: p.lon,
+}));
+
+setRouteData({
+  coordinates: formatted,
+  distance: data.distance,
+  duration: data.duration,
+  streetName: data.streetName,
+});
+
+    setRouteCoords(formatted);
+    setSelectedStop(stop);
+
+  } catch (err) {
+    console.log("ERROR RUTA:", err);
+  }
+};
 
 
   // ======================== RENDER ============================ //
@@ -160,14 +262,14 @@ export default function MapScreen() {
           .map((feature: any) => {
             const [longitude, latitude] = feature.geometry.coordinates;
             const isClosest = closestStop?.stop?.id === feature.id;
+            const isSelected = selectedStop?.id === feature.id;
 
             return (
   <Marker
   key={String(feature.id)}
   coordinate={{ latitude, longitude }}
+  pinColor="red"
   onPress={async () => {
-    if (!isClosest) return;
-
     const map = mapRef.current;
     if (!map) return;
 
@@ -180,12 +282,14 @@ export default function MapScreen() {
 
     setPopupPos({ x: point.x, y: point.y });
     setShowPopup(true);
+    setSelectedStop(feature);
+    fetchRouteToStop(feature);
   }}
 >
   <View style={styles.touchArea}>
     
     {/* MARKER CON PULSE */}
-    {isClosest && (
+    {isSelected && (
       <Animated.View
         style={[
           styles.pulse,
@@ -203,7 +307,12 @@ export default function MapScreen() {
     <View
       style={[
         styles.marker,
-        { backgroundColor: isClosest ? "red" : "green" },
+        { backgroundColor: isSelected
+          ? "red"
+          : isClosest
+          ? "#8b5cf6"
+          : "green"
+        },
       ]}
     />
 
@@ -212,7 +321,54 @@ export default function MapScreen() {
 
             );
           })}
+
+{!!routeData?.coordinates?.length && (
+  <Polyline
+    coordinates={routeData.coordinates}
+    strokeWidth={5}
+    strokeColor="red"
+  />
+)}
       </MapView>
+
+       {selectedStop && (
+  <View style={styles.drawer}>
+    <Text style={styles.drawerTitle}>
+      🚏 {selectedStop.properties.name || "Parada"}
+    </Text>
+
+<Text>
+ Distancia aproximada:{" "}
+ {routeData?.distance
+   ? `${(routeData.distance / 1000).toFixed(2)} km`
+   : "Calculando..."}
+</Text>
+
+<Text>
+ Tiempo caminando:{" "}
+ {routeData?.duration
+   ? `${Math.ceil(routeData.duration / 60)} min`
+   : "Calculando..."}
+</Text>
+
+<Text>
+ Calle actual:{" "}
+ {routeData?.streetName || "Calculando..."}
+</Text>
+
+    <TouchableOpacity
+      style={styles.closeDrawer}
+      onPress={() => {
+        setSelectedStop(null);
+        setRouteData(null);
+      }}
+    >
+      <Text style={{ color: "white" }}>
+        Cerrar
+      </Text>
+    </TouchableOpacity>
+  </View>
+)}
 
       {/* POPUP PEGADO AL MARKER */}
  {closestStop && popupPos && showPopup && (
@@ -240,7 +396,8 @@ export default function MapScreen() {
       },
     ]}
   >
-    <View style={styles.popup}>
+    {/*
+   { <View style={styles.popup}>
       <Text style={styles.popupTitle}>
         {closestStop.stop.properties.name || "Parada"}
       </Text>
@@ -255,7 +412,7 @@ export default function MapScreen() {
       >
         <Text style={{ color: "white", fontSize: 12 }}>Cerrar</Text>
       </TouchableOpacity>
-    </View>
+    </View>}  */}
 
     <View style={styles.arrow} />
   </Animated.View>
@@ -263,7 +420,14 @@ export default function MapScreen() {
 
       {/* Botón flotante */}
       <TouchableOpacity
-        style={styles.floatingButton}
+        style={[
+    styles.floatingButton,
+    {
+      bottom: selectedStop
+        ? 220 + insets.bottom
+        : 30 + insets.bottom,
+    },
+  ]}
         onPress={() => setModalVisible(true)}
       >
         <Text style={{ color: "white", fontWeight: "bold" }}>Líneas</Text>
@@ -276,7 +440,7 @@ export default function MapScreen() {
             <Text style={styles.title}>Líneas disponibles</Text>
 
             <View style={styles.lineContainer}>
-              {["A", "E", "Z E", "Z O"].map((linea) => (
+              {["A", "E", "ZE", "Z O"].map((linea) => (
                 <TouchableOpacity
                   key={linea}
                   style={styles.lineButton}
@@ -425,6 +589,37 @@ pulse: {
   height: 40,
   borderRadius: 20,
   backgroundColor: "red",
+},
+
+drawer: {
+  position: "absolute",
+  left: 12,
+  right: 12,
+  bottom: 12,
+  backgroundColor: "white",
+  padding: 20,
+  borderRadius: 24,
+  minHeight: 170,
+
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.2,
+  shadowRadius: 8,
+  elevation: 10,
+},
+
+drawerTitle: {
+  fontSize: 18,
+  fontWeight: "bold",
+  marginBottom: 10,
+},
+
+closeDrawer: {
+  marginTop: 15,
+  backgroundColor: "#ef4444",
+  padding: 12,
+  borderRadius: 10,
+  alignItems: "center",
 },
 
 });

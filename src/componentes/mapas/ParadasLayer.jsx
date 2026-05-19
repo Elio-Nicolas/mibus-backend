@@ -17,47 +17,73 @@ const paradaIcon = L.divIcon({
   iconAnchor: [7, 7],
 });
 
-const ParadasLayer = ({ paradasData, selectedLinea, visible }) => {
+const ParadasLayer = ({
+  paradasData,
+  selectedLinea,
+  visible,
+  nearestStop,
+  onStopClick,
+}) => {
 
-  // 🔥 FIX 4: useMemo SIEMPRE se ejecuta (no condicional)
+   const features = paradasData?.features ?? [];
   const filteredData = useMemo(() => {
     if (!paradasData) return null;
 
-    // sin filtro → devolver todo
     if (!selectedLinea) return paradasData;
 
-    // filtrar por línea
     return {
       ...paradasData,
-      features: paradasData.features.filter(
-        (f) => f.properties?.linea === selectedLinea
-      ),
+      features
     };
   }, [paradasData, selectedLinea]);
 
-  // 🔥 control de visibilidad (clave para la simulación)
-  if (!visible) return null;
+  if (!visible || !filteredData) return null;
 
-  if (!filteredData) return null;
+ 
 
   return (
     <GeoJSON
       data={filteredData}
       pane="paradasPane"
-      pointToLayer={(feature, latlng) =>
-        L.marker(latlng, {
-          icon: paradaIcon,
+      pointToLayer={(feature, latlng) => {
+
+        const isNearest =
+          nearestStop &&
+          (feature.id === nearestStop.id);
+
+        return L.marker(latlng, {
           pane: "paradasPane",
-        })
-      }
+          icon: L.divIcon({
+            className: "",
+            html: `
+              <div style="
+                width:${isNearest ? 18 : 10}px;
+                height:${isNearest ? 18 : 10}px;
+                background:${isNearest ? "red" : "#007bff"};
+                border-radius:50%;
+                border:2px solid white;
+                ${isNearest ? "box-shadow:0 0 10px red;" : ""}
+              "></div>
+            `,
+            iconSize: [18, 18],
+            iconAnchor: [9, 9],
+          }),
+        });
+      }}
       onEachFeature={(feature, layer) => {
+
+        
+        layer.on("click", () => {
+          console.log("CLICK PARADA:", feature);
+          onStopClick && onStopClick(feature);
+        });
+
+        
         const id = feature.id || "Sin ID";
-        const tipo = feature.properties?.highway || "bus_stop";
 
         layer.bindPopup(`
           <strong>🚌 Parada</strong><br/>
-          ID: ${id}<br/>
-          Tipo: ${tipo}
+          ID: ${id}
         `);
       }}
     />

@@ -24,12 +24,14 @@ export const AuthProvider = ({ children }: any) => {
 
   useEffect(() => {
     const loadSession = async () => {
+      
       const storedRole = await AsyncStorage.getItem("userRole");
       const storedToken = await AsyncStorage.getItem("token");
 
       if (storedRole) setUserRole(storedRole as Role);
       if (storedToken) setToken(storedToken);
 
+      console.log("TOKEN GUARDADO:", storedToken);
       setLoading(false);
     };
 
@@ -38,7 +40,7 @@ export const AuthProvider = ({ children }: any) => {
 
   const login = async (username: string, password: string) => {
     try {
-    const response = await fetch("http://192.168.100.9:4001/api/auth/signin", {
+    const response = await fetch("http://192.168.100.4:4001/api/auth/signin", { //"http://192.168.100.9:4001/api/auth/signin"
   method: "POST",
   headers: {
     "Content-Type": "application/json",
@@ -56,7 +58,9 @@ if (!response.ok) {
 
 const data = await response.json();
 console.log("DATA:", data);
+console.log("TOKEN NUEVO:", data.token);
 
+await AsyncStorage.setItem("token", data.token);
 
 
       if (!response.ok) {

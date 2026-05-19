@@ -1,3 +1,80 @@
+/**
+ * ==========================================================
+ * ARCHIVO: AdminHeader.jsx
+ * ----------------------------------------------------------
+ * COMPONENTE: Header principal del panel Admin / UI global
+ *
+ * 🔴 ESTADO ACTUAL:
+ * Componente funcional pero todavía ACOPLADO.
+ * Mezcla UI + lógica de permisos + estado interno + menús.
+ *
+ * ==========================================================
+ *
+ *  RESPONSABILIDADES ACTUALES:
+ *
+ * 1. UI principal del sistema
+ *    - AppBar
+ *    - Toolbar
+ *    - Branding (MiBus)
+ *
+ * 2. Gestión de estado UI local
+ *    - Menú configuración (anchorConfig)
+ *    - Menú usuario (userAnchorEl)
+ *    - Menú settings (anchorEl)
+ *
+ * 3. Permisos de UI por rol
+ *    - ROLE_UI define qué botones se muestran
+ *    - Depende directamente de AuthContext
+ *
+ * 4. Integración con contexto global
+ *    - useAuth (user / logout)
+ *
+ * 5. Datos externos de UI
+ *    - useWeatherClock (hora / clima / ciudad)
+ *
+ * ==========================================================
+ *
+ *  PROBLEMAS DETECTADOS:
+ *
+ * - DEMASIADAS RESPONSABILIDADES en un solo componente
+ * - Menús embebidos (no reutilizables)
+ * - Lógica de roles acoplada al render
+ * - Estados UI repetitivos (anchors múltiples)
+ * - Dependencia directa de Auth + Weather + Theme
+ *
+ * ==========================================================
+ *
+ *  REDUNDANCIA POTENCIAL EN EL PROYECTO:
+ *
+ * Puede existir duplicación en otros componentes de:
+ * - ROLE_UI (permisos visuales)
+ * - Menús de usuario / settings
+ * - Lógica de logout
+ * - Lógica de clima/ubicación
+ *
+ * ==========================================================
+ *
+ *  REFACTORIZACIÓN FUTURA (NO OBLIGATORIA AHORA):
+ *
+ * Se recomienda dividir en:
+ *
+ * - UserMenu.jsx        → menú usuario + logout
+ * - ConfigMenu.jsx      → demo + theme toggle
+ * - WeatherStatus.jsx   → clima + hora + ciudad
+ * - useHeaderMenus.js   → estado de anchors
+ * - useRoleUI.js        → lógica de permisos por rol
+ *
+ * ==========================================================
+ *
+ *  ESTADO FUNCIONAL ACTUAL:
+ *
+ * ✔ No tiene bugs estructurales
+ * ✔ Funciona correctamente
+ * ✔ Refactor seguro sin romper UI
+ *
+ * ==========================================================
+ */
+
 import React, { useState } from "react";
 import ScienceIcon from "@mui/icons-material/Science";
 import AppBar from "@mui/material/AppBar";
@@ -18,6 +95,8 @@ import LightModeIcon from "@mui/icons-material/LightMode";
 import {getWeatherTheme} from "../../context/weatherTheme"
 import Skeleton from "@mui/material/Skeleton";
 import { useAuth } from "../../context/AuthContext";
+import { useWeatherClock } from "./hooks/useWeatherClock";
+import { ROLE_UI } from "./config/roleUI";
 
 // ========================== HELPER ==========================
 
@@ -33,63 +112,10 @@ export default function AdminHeader({
   //onLogout
 }) {
 
-  const ROLE_UI = {
-  GUEST: {
-    lineas: false,
-    clima: false,
-    engranaje: false,
-    cerrarSesion: false,
-    chofer: false,
-    inspector: false,
-  },
-  PASAJERO: {
-    lineas: true,
-    clima: true,
-    engranaje: false,
-    cerrarSesion: false,
-    chofer: false,
-    inspector: false,
-  },
-  INSPECTOR: {
-    lineas: true,
-    clima: true,
-    engranaje: false,
-    cerrarSesion: true,
-    chofer: false,
-    inspector: false,
-  },
-  CHOFER: {
-    lineas: false,
-    clima: false,
-    engranaje: false,
-    cerrarSesion: true,
-    chofer: false,
-    inspector: false,
-  },
-  ADMIN: {
-    lineas: true,
-    clima: true,
-    engranaje: true,
-    cerrarSesion: true,
-    chofer: true,
-    inspector: true,
-  },
-};
 
-// ======================== HORA / CLIMA / CUIDAD================================= //
-const [time, setTime] = React.useState(new Date());
-const [weather, setWeather] = React.useState(null);
-const [city, setCity] = React.useState(null);
-
-const formattedDate = time.toLocaleDateString("es-AR", {
-  weekday: "short",
-  day: "2-digit",
-  month: "short"
-});
-
-  //  ===================== CONFIGURACION  =======================//
+   //  ===================== CONFIGURACION  =======================//
   const { user, logout } = useAuth();
-
+  const { time, weather, city, formattedDate } = useWeatherClock();
   const role = user?.role ?? "GUEST";
   const ui = ROLE_UI[role] || ROLE_UI.GUEST;
 
@@ -124,50 +150,6 @@ const formattedDate = time.toLocaleDateString("es-AR", {
    setUserAnchorEl(null);
   };
 
-React.useEffect(() => {
-  const interval = setInterval(() => {
-    setTime(new Date());
-  }, 1000);
-  return () => clearInterval(interval);
-}, []);
-
-
-React.useEffect(() => {
-  navigator.geolocation.getCurrentPosition(
-    async (pos) => {
-      try {
-        const { latitude, longitude } = pos.coords;
-
-        // CLIMA
-        const weatherRes = await fetch(
-          `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`
-        );
-        const weatherData = await weatherRes.json();
-        setWeather(weatherData.current_weather);
-
-        // CIUDAD (Reverse Geocoding)
-        const geoRes = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
-        );
-        const geoData = await geoRes.json();
-
-        const address = geoData.address;
-        const cityName =
-          address.city ||
-          address.town ||
-          address.village ||
-          address.state;
-
-        setCity(cityName);
-      } catch (err) {
-        console.warn("Error obteniendo clima o ciudad", err);
-      }
-    },
-    () => {
-      console.warn("No se pudo obtener ubicación");
-    }
-  );
-}, []);
 
 return (
   <>

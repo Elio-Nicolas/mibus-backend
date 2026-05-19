@@ -1,3 +1,56 @@
+/**
+ * ===============================
+ * DRAWER DE LÍNEAS DE COLECTIVOS
+ * ===============================
+ *
+ * Este componente:
+ *
+ * - Renderiza un Drawer inferior (bottom sheet) con Material UI
+ * - Muestra lista de buses activos en el sistema
+ * - Permite seleccionar líneas de colectivo disponibles
+ *
+ * ===============================
+ * FUNCIONALIDAD PRINCIPAL
+ * ===============================
+ *
+ * - Recibe como props:
+ *   → open: controla apertura del drawer
+ *   → onClose: cierra el drawer
+ *   → buses: lista de buses activos
+ *   → onLineaSelect: callback al seleccionar una línea
+ *
+ * - Renderiza:
+ *   → listado de buses con información básica
+ *   → botones de selección de líneas
+ *
+ * ===============================
+ * DATOS MOSTRADOS
+ * ===============================
+ *
+ * Por cada bus:
+ * - Nombre o identificador
+ * - Coordenadas (lat/lon)
+ * - Timestamp de última actualización
+ *
+ * ===============================
+ * RESPONSABILIDAD
+ * ===============================
+ *
+ * Este componente es principalmente PRESENTACIONAL:
+ *
+ * - No obtiene datos por sí mismo
+ * - No maneja lógica de backend
+ * - Solo renderiza información recibida por props
+ *
+ * ===============================
+ * OBSERVACIÓN
+ * ===============================
+ *
+ * - lineasDisponibles está hardcodeado (A, E, Z E, Z O)
+ * - Podría moverse a configuración central si escala el sistema
+ *
+ */
+
 import React from "react";
 import {
   Drawer,
@@ -13,7 +66,7 @@ import {
 import CloseIcon from "@mui/icons-material/Close";
 
 const LineasDrawer = ({ open, onClose, buses = [], onLineaSelect }) => {
-  const lineasDisponibles = ["A", "E", "Z E", "Z O"];
+  const lineasDisponibles = ["A", "E", "ZE", "Z O"];
 
   return (
     <Drawer

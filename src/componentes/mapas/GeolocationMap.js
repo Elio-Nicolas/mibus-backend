@@ -1,9 +1,64 @@
+/**
+ * ===============================
+ * MAPA DE GEOLOCALIZACIÓN EN TIEMPO REAL
+ * ===============================
+ *
+ * Este componente:
+ *
+ * - Obtiene la ubicación del usuario en tiempo real usando Geolocation API
+ * - Envía la ubicación al backend mediante Socket.IO
+ * - Recibe actualizaciones de buses desde el backend
+ * - Renderiza un mapa interactivo con Leaflet
+ *
+ * ===============================
+ * FLUJO PRINCIPAL
+ * ===============================
+ *
+ * 1. Al montar el componente:
+ *    → inicia seguimiento de ubicación (watchPosition)
+ *    → establece conexión Socket.IO con el backend
+ *
+ * 2. En cada cambio de ubicación:
+ *    → actualiza estado local (position)
+ *    → emite evento "locationUpdate" al backend
+ *
+ * 3. Escucha del backend:
+ *    → recibe "busUpdate"
+ *    → actualiza lista de buses en tiempo real
+ *
+ * 4. Render:
+ *    → marcador del usuario actual (posición simulada de colectivo)
+ *    → marcadores de buses del backend
+ *
+ * ===============================
+ * RESPONSABILIDAD
+ * ===============================
+ *
+ * Este componente mezcla varias capas:
+ *
+ * - Captura de geolocalización (browser API)
+ * - Comunicación en tiempo real (Socket.IO)
+ * - Render del mapa (Leaflet)
+ * - Estado de buses globales (backend sync)
+ *
+ * ===============================
+ * OBSERVACIÓN IMPORTANTE
+ * ===============================
+ *
+ * Actualmente este archivo contiene duplicación de imports de socket.io
+ * y lógica acoplada que debería separarse en:
+ *
+ * - hook de geolocalización (useGeolocation)
+ * - servicio de sockets (socketService)
+ * - capa de mapa reutilizable
+ *
+ */
+
 import { useState, useEffect } from "react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import io from "socket.io-client";
 
-import { io } from "socket.io-client";
 const socket = io("http://localhost:4001"); // conexion con el back
 
 const getLocation = (setPosition) => {

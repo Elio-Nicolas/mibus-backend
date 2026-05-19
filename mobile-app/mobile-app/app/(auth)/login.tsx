@@ -36,8 +36,6 @@ const handleLogin = async () => {
   }
 };
 
-
-
   return (
     <KeyboardAvoidingView
       style={styles.container}

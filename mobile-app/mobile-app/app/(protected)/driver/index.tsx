@@ -31,6 +31,7 @@ export default function DriverScreen() {
   const [sharing, setSharing] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const locationSubscription = useRef<Location.LocationSubscription | null>(null);
+  const { userRole } = useAuth();
 
 const loadSessions = async () => {
   try {
@@ -160,6 +161,10 @@ const loadSessions = async () => {
     activeSession && !activeSession?.endTime
       ? "EN SERVICIO"
       : "SIN SERVICIO";
+
+  if (userRole !== "CHOFER") {
+  return null;
+ }    
 
   if (!chofer) {
     return (

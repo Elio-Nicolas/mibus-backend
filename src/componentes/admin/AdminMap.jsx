@@ -1,3 +1,55 @@
+/**
+ * ===============================
+ * ADMIN MAP (MAPA PRINCIPAL)
+ * ===============================
+ *
+ * Este componente:
+ *
+ * - Renderiza el mapa principal usando Leaflet (MapContainer)
+ * - Muestra la capa base de OpenStreetMap (TileLayer)
+ *
+ * - Dibuja buses en tiempo real (markers)
+ *   → recibe lista de buses desde props
+ *   → filtra buses válidos (lat/lon)
+ *   → asigna iconos dinámicos por color
+ *
+ * - Dibuja recorridos de buses (Polyline)
+ *   → usa busTrails por unidad
+ *
+ * - Renderiza paradas (stops)
+ *   → derivadas desde buses (isStop)
+ *   → depende indirectamente de la línea activa
+ *
+ * - Maneja iconografía personalizada de buses
+ *   → crea markers circulares con colores dinámicos
+ *   → usa cache para optimizar rendimiento
+ *
+ * - Aplica fix de redimensionamiento de Leaflet (ResizeFix)
+ *   → fuerza recalculo del mapa cuando se monta
+ *
+ * ===============================
+ * RESPONSABILIDADES MEZCLADAS
+ * ===============================
+ *
+ * Este componente actualmente combina:
+ *
+ * - UI del mapa (render visual)
+ * - Lógica de negocio (detección de paradas)
+ * - Lógica de presentación (creación de iconos)
+ * - Optimización de render (cache de iconos)
+ *
+ * ===============================
+ * POSIBLES MEJORAS FUTURAS
+ * ===============================
+ *
+ * - Extraer createBusIcon a /map/icons/
+ * - Mover ResizeFix a hook reutilizable
+ * - Externalizar lógica de paradas (stops) fuera del componente
+ * - Mover estilos CSS a archivo separado
+ * - Normalizar estructura de bus (lat/lon)
+ *
+ */
+
 import { MapContainer, TileLayer, Marker, useMap, Polyline } from "react-leaflet";
 import { useEffect } from "react";
 import "leaflet/dist/leaflet.css";

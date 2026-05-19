@@ -1,3 +1,52 @@
+/**
+ * ===============================
+ * CAPA DE TRAZADO DE BUS (TRAIL)
+ * ===============================
+ *
+ * Este componente:
+ *
+ * - Renderiza el rastro (historial de movimiento) de un bus en el mapa
+ * - Usa múltiples Markers de Leaflet para simular una estela visual
+ *
+ * ===============================
+ * FUNCIONAMIENTO
+ * ===============================
+ *
+ * - Recibe:
+ *   → unitId (identificador del bus)
+ *   → points (array de coordenadas [lat, lon])
+ *   → color (color del bus)
+ *
+ * - Por cada punto:
+ *   → dibuja un Marker pequeño tipo "dot"
+ *   → ajusta opacidad progresiva según el índice
+ *
+ * ===============================
+ * OBJETIVO VISUAL
+ * ===============================
+ *
+ * Simular el recorrido del bus en el mapa:
+ * - Más reciente → más visible
+ * - Más antiguo → más transparente
+ *
+ * ===============================
+ * RESPONSABILIDAD
+ * ===============================
+ *
+ * Este componente es puramente de PRESENTACIÓN:
+ *
+ * - No calcula rutas
+ * - No procesa datos
+ * - Solo transforma un array de puntos en visualización
+ *
+ * ===============================
+ * NOTA
+ * ===============================
+ *
+ * Se utiliza Marker en lugar de Polyline para lograr efecto de puntos degradados
+ *
+ */
+
 import { Marker } from "react-leaflet";
 import L from "leaflet";
 
