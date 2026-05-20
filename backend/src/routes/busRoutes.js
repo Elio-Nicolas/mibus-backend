@@ -1,16 +1,31 @@
-const express = require("express");
-const Bus = require("../models/Bus");
+/**
+ * ==========================================================
+ * Archivo: routes/busRoutes.js
+ * ----------------------------------------------------------
+ * Rutas relacionadas con unidades (colectivos).
+ *
+ * Responsabilidad:
+ * - Definir endpoints HTTP
+ * - Delegar la lógica al BusController
+ *
+ * Este archivo NO contiene lógica de negocio.
+ *
+ * Estado:
+ * ✔ Refactorizado correctamente
+ * ✔ Desacoplado (routing separado de lógica)
+ * ==========================================================
+ */
 
+const express = require("express");
 const router = express.Router();
 
-// Obtener todos los colectivos
-router.get("/", async (req, res) => {
-  try {
-    const buses = await Bus.find();
-    res.json(buses);
-  } catch (error) {
-    res.status(500).json({ error: "Error obteniendo colectivos" });
-  }
-});
+const { getAllBuses } = require("../controllers/busController");
+
+/**
+ * ==========================================================
+ * GET /api/buses
+ * ==========================================================
+ */
+router.get("/", getAllBuses);
 
 module.exports = router;

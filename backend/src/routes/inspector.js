@@ -1,26 +1,49 @@
+/**
+ * ==========================================================
+ * Archivo: routes/inspectorRoutes.js
+ * ----------------------------------------------------------
+ * Rutas relacionadas con el inspector.
+ *
+ * Responsabilidad:
+ * - Definir endpoints HTTP
+ * - Delegar la lógica al InspectorController
+ *
+ * Este archivo NO contiene lógica de negocio.
+ *
+ * Estado:
+ * ✔ Refactorizado correctamente
+ * ✔ Desacoplado (routing separado de lógica)
+ * ==========================================================
+ */
+
 const express = require("express");
 const router = express.Router();
-const User = require("../models/User");
+
 const { auth, allowRoles } = require("../middlewares/auth");
 
+const {
+  getMe,
+  getDrivers,
+  getActiveSession,
+  startSession,
+  stopSession
+} = require("../controllers/inspectorController");
+
 /* =========================
-   VER CHOFERES (INSPECTOR)
+   DATOS DEL INSPECTOR
 ========================= */
-router.get(
-  "/drivers",
-  auth,
-  allowRoles("INSPECTOR"),
-  async (req, res) => {
-    try {
-      const drivers = await User.find({ role: "CHOFER" })
-        .select("username assignedUnit assignedLine location");
+router.get("/me", auth, allowRoles("INSPECTOR"), getMe);
 
-      res.json(drivers);
-    } catch (err) {
-      res.status(500).json({ error: "Error obteniendo choferes" });
-    }
-  }
-);
+/* =========================
+   CHOFERES
+========================= */
+router.get("/drivers", auth, allowRoles("INSPECTOR"), getDrivers);
 
+/* =========================
+   SESIONES
+========================= */
+router.get("/session/active", auth, allowRoles("INSPECTOR"), getActiveSession);
+router.post("/session/start", auth, allowRoles("INSPECTOR"), startSession);
+router.post("/session/stop", auth, allowRoles("INSPECTOR"), stopSession);
 
 module.exports = router;
