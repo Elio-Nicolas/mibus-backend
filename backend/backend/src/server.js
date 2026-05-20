@@ -88,7 +88,7 @@ const startServer = async () => {
     console.log("Mongo conectado correctamente");
 
     /* SOCKETS */
-    const initSockets = require("./sockets");
+    const initSockets = require("./sockets/index");
     initSockets(io);
 
     /* SERVER */
