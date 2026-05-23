@@ -23,10 +23,10 @@ const InspectorPanel = () => {
   const [drivers, setDrivers] = useState([]);
   const [selectedLine, setSelectedLine] = useState("");
   const [selectedDriver, setSelectedDriver] = useState(null);
-  const { mode, toggleMode } = useThemeMode();
+  const {toggleMode } = useThemeMode();
   
   useEffect(() => {
-    fetch("http://localhost:4001/api/inspector/drivers", {
+    fetch("https://mibus-backend-1.onrender.com/api/inspector/drivers", {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(res => res.json())

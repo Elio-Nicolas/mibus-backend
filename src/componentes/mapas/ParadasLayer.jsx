@@ -2,21 +2,6 @@ import React, { useMemo } from "react";
 import { GeoJSON } from "react-leaflet";
 import L from "leaflet";
 
-const paradaIcon = L.divIcon({
-  className: "",
-  html: `
-    <div style="
-      width:10px;
-      height:10px;
-      background:#007bff;
-      border-radius:50%;
-      border:2px solid white;
-    "></div>
-  `,
-  iconSize: [14, 14],
-  iconAnchor: [7, 7],
-});
-
 const ParadasLayer = ({
   paradasData,
   selectedLinea,

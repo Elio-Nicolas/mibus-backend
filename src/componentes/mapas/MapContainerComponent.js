@@ -29,8 +29,6 @@ import { useMapUIController } from "./hooks/useMapUIController";
 import { useParadas } from "./hooks/useParadas";
 import { useUserLocation } from "./hooks/useUserLocation";
 import { useNearestStop } from "./hooks/useNearestStop";
-import { Popup } from "react-leaflet";
-//import L from "leaflet";
 
 const DEFAULT_POSITION = [-33.6756, -65.4578];
 
@@ -74,13 +72,11 @@ const handleLogout = () => {
 
 const MapContainerComponent = () => {
 
-  const [userPosition] = useState(null);
-  const [demoEnabled, setDemoEnabled] = useState(false);
   const { buses, busTrails } = useBusSocket();
   const { uiState, uiActions } = useMapUIController();
   const { validBuses, trails } = useBusLayer(buses, busTrails, uiState.selectedLinea);
   const [selectedUnit, setSelectedUnit] = useState(localStorage.getItem("unitId") || "");
-  const { user, role, username } = useAuthUser();
+  const {role, username } = useAuthUser();
   const storedUserId = useStoredUserId();
   const ui = useMapUI(role);
   const paradas = useParadas(uiState.selectedLinea);
@@ -99,14 +95,13 @@ const MapContainerComponent = () => {
 
 const route = routeData?.route;
 
-const [setRouteInfo] = useState(null);
-  const {isSharing, startSharing, stopSharing} 
+const {isSharing, startSharing, stopSharing} 
     = useChoferTracking({
     role,
     selectedUnit,
     storedUserId,
     username
-  });
+});
 
 function FixMapResize() {
   const map = useMap();

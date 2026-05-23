@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 export const useUserToStopRoute = (userPosition, nearestStop) => {
 
   const [routeData, setRouteData] = useState(null);
-  const [routeInfo, setRouteInfo] = useState(null);
+  const [setRouteInfo] = useState(null);
 
   useEffect(() => {
 
@@ -20,7 +20,7 @@ export const useUserToStopRoute = (userPosition, nearestStop) => {
         if (!userPosition || !nearestStop) return;
 
         const res = await fetch(
-          "http://localhost:4001/api/map/route-user-stop",
+          "https://mibus-backend-1.onrender.com/api/map/route-user-stop",
           {
             method: "POST",
             headers: {

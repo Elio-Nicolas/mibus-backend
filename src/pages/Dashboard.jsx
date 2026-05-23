@@ -126,7 +126,7 @@ const Dashboard = () => {
 
       try {
 
-        const res = await fetch("http://localhost:4001/api/dashboard/summary");
+        const res = await fetch("https://mibus-backend-1.onrender.com/api/dashboard/summary");
 
         const data = await res.json();
 
@@ -144,7 +144,7 @@ const Dashboard = () => {
 
     const loadDemo = async () => {
   try {
-    const res = await fetch("http://localhost:4001/api/demo/status");
+    const res = await fetch("https://mibus-backend-1.onrender.com/api/demo/status");
     const data = await res.json();
 
     setStats(prev => ({
@@ -185,7 +185,7 @@ loadDemo();
   const loadDayLine = async () => {
 
     const res = await fetch(
-      "http://localhost:4001/api/dashboard/laps-by-day-line"
+      "https://mibus-backend-1.onrender.com/api/dashboard/laps-by-day-line"
     );
 
     const data = await res.json();

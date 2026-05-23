@@ -30,8 +30,8 @@ const ChoferPanel = () => {
   const [events, setEvents] = useState([]);
   const [elapsedTime, setElapsedTime] = useState(0);
   const watchIdRef = useRef(null);
-  const [startTime, setStartTime] = useState(null);
-  const { mode, toggleMode } = useThemeMode();
+  const [startTime] = useState(null);
+  const {toggleMode } = useThemeMode();
 
   // =========================
   // CARGAR CHOFER Y SESIONES
@@ -40,7 +40,7 @@ const ChoferPanel = () => {
     try {
       // Sesión activa
       const resActive = await fetch(
-        "http://localhost:4001/api/chofer/session/active",
+        "https://mibus-backend-1.onrender.com/api/chofer/session/active",
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (resActive.ok) {
@@ -50,7 +50,7 @@ const ChoferPanel = () => {
 
       // Últimas sesiones
       const resLast = await fetch(
-        "http://localhost:4001/api/chofer/session/last",
+        "https://mibus-backend-1.onrender.com/api/chofer/session/last",
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (resLast.ok) {
@@ -74,7 +74,7 @@ const ChoferPanel = () => {
   useEffect(() => {
     const fetchChofer = async () => {
       try {
-        const res = await fetch("http://localhost:4001/api/chofer/me", {
+        const res = await fetch("https://mibus-backend-1.onrender.com/api/chofer/me", {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) throw new Error("No se pudo obtener");
@@ -192,7 +192,7 @@ const ChoferPanel = () => {
   try {
   
     const res = await safeFetch(
-      "http://localhost:4001/api/chofer/session/start",
+      "https://mibus-backend-1.onrender.com/api/chofer/session/start",
       {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
@@ -215,7 +215,7 @@ const ChoferPanel = () => {
   if (!activeSession) return;
 
   try {
-    await safeFetch("http://localhost:4001/api/chofer/session/stop", {
+    await safeFetch("https://mibus-backend-1.onrender.com/api/chofer/session/stop", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,

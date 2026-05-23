@@ -127,16 +127,6 @@ export default function AdminHeader({
   const handleCloseConfig = () => setAnchorConfig(null);
 
 
-  const [anchorEl, setAnchorEl] = useState(null);
-  const open = Boolean(anchorEl);
-
-  const handleOpenSettings = (e) => {
-    setAnchorEl(e.currentTarget);
-  };
-
-  const handleCloseSettings = () => {
-    setAnchorEl(null);
-  };
 
   // ======================== USUAI¡RIO  ==========================//
   const [userAnchorEl, setUserAnchorEl] = useState(null);

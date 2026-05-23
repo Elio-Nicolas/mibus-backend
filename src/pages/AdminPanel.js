@@ -141,7 +141,7 @@ useEffect(() => {
 
   // ================= FETCH =================
   useEffect(() => {
-    fetch("http://localhost:4001/api/admin/users", {
+    fetch("https://mibus-backend-1.onrender.com/api/admin/users", {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -223,7 +223,7 @@ const filteredUsers = users.filter(u => {
   };
 
   const saveUnit = async (id) => {
-    await fetch(`http://localhost:4001/api/admin/users/${id}/unit`,
+    await fetch(`https://mibus-backend-1.onrender.com/api/admin/users/${id}/unit`,
       {
         method: "PUT",
         headers: {
@@ -242,7 +242,7 @@ const filteredUsers = users.filter(u => {
   };
 
   const saveLine = async (id) => {
-  await fetch(`http://localhost:4001/api/admin/users/${id}/line`, {
+  await fetch(`https://mibus-backend-1.onrender.com/api/admin/users/${id}/line`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -259,7 +259,7 @@ const filteredUsers = users.filter(u => {
 };
 
   const saveRole = async (id) => {
-    await fetch(`http://localhost:4001/api/admin/users/${id}/role`,
+    await fetch(`https://mibus-backend-1.onrender.com/api/admin/users/${id}/role`,
       {
         method: "PUT",
         headers: {
@@ -281,7 +281,7 @@ const filteredUsers = users.filter(u => {
   const deleteUser = async (id) => {
     if (!window.confirm("¿Eliminar usuario?")) return;
 
-    await fetch(`http://localhost:4001/api/admin/users/${id}`,
+    await fetch(`https://mibus-backend-1.onrender.com/api/admin/users/${id}`,
       {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
@@ -294,7 +294,7 @@ const filteredUsers = users.filter(u => {
   /* ================= AGREGAR ================= */
   const addUser = async () => {
     try {
-      const res = await fetch("http://localhost:4001/api/admin/users", {
+      const res = await fetch("https://mibus-backend-1.onrender.com/api/admin/users", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

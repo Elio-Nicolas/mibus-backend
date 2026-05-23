@@ -55,13 +55,6 @@ import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
-
-useEffect(() => {
-  return () => {
-    console.log("❌ ChoferMapView DESMONTADO");
-  };
-}, []);
-
 // FIX iconos leaflet
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -73,7 +66,12 @@ L.Icon.Default.mergeOptions({
     "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
 });
 
-// 📍 mueve el mapa cuando cambia la posición
+
+
+const ChoferMapView = ({ posicion }) => {
+ // console.log(" ChoferMapView render");
+
+ // mueve el mapa cuando cambia la posición
 const RecenterMap = ({ posicion }) => {
   const map = useMap();
 
@@ -90,8 +88,11 @@ const RecenterMap = ({ posicion }) => {
   return null;
 };
 
-const ChoferMapView = ({ posicion }) => {
-  console.log("🗺️ ChoferMapView render");
+ useEffect(() => {
+  return () => {
+    console.log("❌ ChoferMapView DESMONTADO");
+  };
+}, []);
 
   return (
     <div style={{ height: "100vh", width: "100%" }}>

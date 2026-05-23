@@ -104,8 +104,3 @@ const startServer = async () => {
 };
 
 startServer();
-
-/* ======================= START SERVER ======================= */
-
-const PORT = process.env.PORT || 4001;
-

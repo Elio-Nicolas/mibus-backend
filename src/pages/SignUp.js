@@ -37,7 +37,7 @@ const SignUp = () => {
     }
 
     try {
-    const res = await fetch("http://localhost:4001/api/users/signup", {
+    const res = await fetch("https://mibus-backend-1.onrender.com/api/users/signup", {
   method: "POST",
   headers: {
     "Content-Type": "application/json",

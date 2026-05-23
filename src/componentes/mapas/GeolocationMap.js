@@ -59,7 +59,7 @@ import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import io from "socket.io-client";
 
-const socket = io("http://localhost:4001"); // conexion con el back
+const socket = io("https://mibus-backend-1.onrender.com"); // conexion con el back
 
 const getLocation = (setPosition) => {
   if (navigator.geolocation) {
